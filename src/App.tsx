@@ -7,12 +7,13 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { CreatePost } from './pages/CreatePost';
-import { BatchProcessing } from './pages/BatchProcessing';
+// import { BatchProcessing } from './pages/BatchProcessing';
 import { DataManagement } from './pages/DataManagement';
 import { Analytics } from './pages/Analytics';
 import { LinkedInVault } from './pages/LinkedInVault';
 import { Settings } from './pages/Settings';
 import { useAuthStore } from './store/useAuthStore';
+
 
 function App() {
   const { isAuthenticated } = useAuthStore();
@@ -38,7 +39,7 @@ function App() {
             >
               <Route index element={<Dashboard />} />
               <Route path="create-post" element={<CreatePost />} />
-              <Route path="batch-processing" element={<BatchProcessing />} />
+              {/* <Route path="batch-processing" element={<BatchProcessing />} /> */}
               <Route path="data-management" element={<DataManagement />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="linkedin-vault" element={<LinkedInVault />} />

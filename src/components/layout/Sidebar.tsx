@@ -31,11 +31,11 @@ const sidebarItems = [
     href: '/create-post',
     icon: MessageSquare,
   },
-  {
-    title: 'Batch Processing',
-    href: '/batch-processing',
-    icon: Upload,
-  },
+  // {
+  //   title: 'Batch Processing',
+  //   href: '/batch-processing',
+  //   icon: Upload,
+  // },
   {
     title: 'Data Management',
     href: '/data-management',
