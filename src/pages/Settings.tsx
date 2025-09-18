@@ -456,19 +456,19 @@ export function Settings() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <div className="h-20 rounded-lg bg-background border-2 border-border flex items-center justify-center">
-                      <Sun className="h-6 w-6" />
+                      {/* <Sun className="h-6 w-6" /> */}
                     </div>
                     <p className="text-sm text-center">Light</p>
                   </div>
                   <div className="space-y-2">
                     <div className="h-20 rounded-lg bg-slate-900 border-2 border-slate-700 flex items-center justify-center">
-                      <Moon className="h-6 w-6 text-white" />
+                      {/* <Moon className="h-6 w-6 text-white" /> */}
                     </div>
                     <p className="text-sm text-center">Dark</p>
                   </div>
                   <div className="space-y-2">
                     <div className="h-20 rounded-lg bg-gradient-to-br from-background to-slate-100 dark:to-slate-800 border-2 border-border flex items-center justify-center">
-                      <Monitor className="h-6 w-6" />
+                      {/* <Monitor className="h-6 w-6" /> */}
                     </div>
                     <p className="text-sm text-center">System</p>
                   </div>

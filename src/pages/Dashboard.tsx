@@ -65,7 +65,7 @@ export function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back! Here's your LinkedIn automation overview.</p>
+          <p className="text-muted-foreground text-xs">Welcome back! Here's your LinkedIn automation overview.</p>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline"

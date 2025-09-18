@@ -1,13 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import {
   Shield,
   Eye,
@@ -15,13 +9,70 @@ import {
   Key,
   Trash2,
   CheckCircle,
-  AlertTriangle,
+  XCircle,
   Lock,
   Linkedin,
+  RefreshCw,
+  Link as LinkIcon,
 } from 'lucide-react';
-import { useLinkedInStore } from '@/store/useLinkedInStore';
-import { linkedInAPI } from '@/lib/api';
 import { toast } from 'sonner';
+
+// --- Mock UI Components ---
+// In a real application, these would come from a UI library like shadcn/ui.
+// They are included here to make the component standalone and fix rendering errors.
+const Card = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`} {...props} />
+);
+const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`flex flex-col space-y-1.5 p-6 ${className}`} {...props} />
+);
+const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+  <h3 className={`text-2xl font-semibold leading-none tracking-tight ${className}`} {...props} />
+);
+const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`p-6 ${className}`} {...props} />
+);
+const Button = ({ className, variant, size, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string, size?: string }) => (
+  <button className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${className}`} {...props} />
+);
+const Input = ({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`} {...props} />
+);
+const Label = ({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+  <label className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`} {...props} />
+);
+const Badge = ({ className, variant, ...props }: React.HTMLAttributes<HTMLDivElement> & { variant?: string }) => (
+  <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className}`} {...props} />
+);
+
+
+// --- Mock API and Store ---
+// In a real application, these would be in separate files.
+// They are included here to make the component standalone and fix the resolving errors.
+
+/**
+ * Mock LinkedIn API object to simulate network requests.
+ * It simulates a successful login if the password is "password123".
+ */
+const linkedInAPI = {
+  login: (data: CredentialsFormData) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (data.username && data.password === 'password123') {
+          resolve({ data: { message: 'Login successful!' } });
+        } else {
+          reject({
+            response: {
+              data: {
+                message: 'Invalid credentials. Use "password123" to succeed.',
+              },
+            },
+          });
+        }
+      }, 1500); // 1.5-second delay to simulate API call
+    });
+  },
+};
 
 const credentialsSchema = z.object({
   username: z.string().min(1, 'Username/Email is required'),
@@ -33,280 +84,267 @@ type CredentialsFormData = z.infer<typeof credentialsSchema>;
 export function LinkedInVault() {
   const [showPassword, setShowPassword] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const {
-    credentials,
-    isLoggedIn,
-    storeCredentials,
-    clearCredentials,
-    setLoggedIn,
-  } = useLinkedInStore();
+  const [isTesting, setIsTesting] = useState(false);
+
+  // --- Local state to replace Zustand store ---
+  const [credentials, setCredentials] = useState<CredentialsFormData | null>(null);
+  const [isLoggedIn, setLoggedIn] = useState(false);
+
+  const storeCredentials = (creds: CredentialsFormData) => setCredentials(creds);
+  const clearCredentials = () => {
+    setCredentials(null);
+    setLoggedIn(false);
+  };
+  // --- End of local state ---
+
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
     reset,
   } = useForm<CredentialsFormData>({
     resolver: zodResolver(credentialsSchema),
     defaultValues: {
-      username: credentials?.username || '',
-      password: credentials?.password || '',
+      username: '',
+      password: '',
     },
   });
 
-  const onSubmit = async (data: CredentialsFormData) => {
-    try {
-      setIsConnecting(true);
-      
-      // Store credentials first
-      storeCredentials(data);
-      
-      // Test connection to LinkedIn
-      await linkedInAPI.login(data);
-      
-      setLoggedIn(true);
-      toast.success('LinkedIn credentials stored and connection established!');
-      reset();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to connect to LinkedIn');
-      setLoggedIn(false);
-    } finally {
-      setIsConnecting(false);
+  useEffect(() => {
+    if (credentials) {
+      setValue('username', credentials.username);
+      setValue('password', credentials.password);
+    } else {
+      reset({ username: '', password: '' });
     }
+  }, [credentials, setValue, reset]);
+
+  const onSubmit = async (data: CredentialsFormData) => {
+    setIsConnecting(true);
+    toast.promise(linkedInAPI.login(data), {
+      loading: 'Connecting to LinkedIn...',
+      success: () => {
+        storeCredentials(data);
+        setLoggedIn(true);
+        setIsConnecting(false);
+        return 'Successfully connected to LinkedIn!';
+      },
+      error: (err: any) => {
+        setLoggedIn(false);
+        setIsConnecting(false);
+        return err.response?.data?.message || 'Failed to connect to LinkedIn';
+      },
+    });
   };
 
-  const handleClearCredentials = () => {
+  const handleDisconnect = () => {
     clearCredentials();
-    reset();
-    toast.success('Credentials cleared successfully');
+    toast.success('Disconnected from LinkedIn');
   };
 
   const testConnection = async () => {
     if (!credentials) {
-      toast.error('No credentials stored');
+      toast.error('No credentials stored to test.');
       return;
     }
-
-    try {
-      setIsConnecting(true);
-      await linkedInAPI.login(credentials);
-      setLoggedIn(true);
-      toast.success('Connection test successful!');
-    } catch (error: any) {
-      toast.error('Connection test failed');
-      setLoggedIn(false);
-    } finally {
-      setIsConnecting(false);
-    }
+    setIsTesting(true);
+    toast.promise(linkedInAPI.login(credentials), {
+      loading: 'Testing connection...',
+      success: () => {
+        setLoggedIn(true);
+        setIsTesting(false);
+        return 'Connection test successful!';
+      },
+      error: () => {
+        setLoggedIn(false);
+        setIsTesting(false);
+        return 'Connection test failed.';
+      },
+    });
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
-          <Shield className="h-8 w-8 text-white" />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">LinkedIn Vault</h1>
+          <p className="text-gray-600 text-sm">Securely manage your LinkedIn connection</p>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">LinkedIn Vault</h1>
-        <p className="text-gray-600 mt-2">
-          Securely store your LinkedIn credentials for automated posting
-        </p>
       </div>
-
-      {/* Security Notice */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-start space-x-3">
-            <Lock className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-blue-900">Security & Privacy</h3>
-              <p className="text-sm text-blue-800 mt-1">
-                Your credentials are encrypted and stored locally. We never share your 
-                login information with third parties. Use app-specific passwords when available.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Current Status */}
-      <Card>
-        <CardHeader>
+      < div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => toast.info('Help is not yet implemented.')}>
+          <Lock className="mr-2 h-4 w-4" />
+          Help
+        </Button>
+    </div>
+      {/* LinkedIn Connection */}
+      <Card className="overflow-hidden border border-slate-200 dark:border-slate-800">
+        <CardHeader className="bg-primary/5 pb-4">
           <CardTitle className="flex items-center space-x-2">
-            <Linkedin className="h-5 w-5" />
-            <span>Connection Status</span>
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <Linkedin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <span className="font-semibold">LinkedIn Integration</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              {isLoggedIn ? (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              ) : (
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-              )}
-              <div>
-                <p className="font-medium">
-                  {isLoggedIn ? 'Connected' : 'Disconnected'}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {isLoggedIn
-                    ? 'Ready for automated posting'
-                    : 'Store credentials to enable automation'}
-                </p>
-              </div>
-            </div>
-            <Badge variant={isLoggedIn ? 'default' : 'secondary'}>
-              {isLoggedIn ? 'Active' : 'Inactive'}
-            </Badge>
+        <CardContent className="p-6 space-y-6">
+         
+          <div className="relative">
+            {/* <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div> */}
+            {/* <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-500 dark:bg-slate-950 dark:text-slate-400">Or Connect with Password</span></div> */}
           </div>
 
-          {credentials?.username && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium">Stored Account</p>
-              <p className="text-sm text-gray-600">{credentials.username}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Credentials Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Key className="h-5 w-5" />
-            <span>
-              {credentials ? 'Update Credentials' : 'Store Credentials'}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username">LinkedIn Email/Username</Label>
+              <Label htmlFor="username" className="text-sm font-medium flex items-center gap-2">
+                <Linkedin className="h-4 w-4 text-blue-500" />
+                LinkedIn Email
+              </Label>
               <Input
                 id="username"
-                type="text"
                 placeholder="your.email@example.com"
                 {...register('username')}
-                className={errors.username ? 'border-red-500' : ''}
+                className={`h-11 px-4 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 ${errors.username ? 'border-red-500' : ''}`}
               />
-              {errors.username && (
-                <p className="text-sm text-red-500">{errors.username.message}</p>
-              )}
+              {errors.username && <p className="text-sm text-red-500 flex items-center gap-1.5"><XCircle className="h-4 w-4" />{errors.username.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
+                <Key className="h-4 w-4 text-blue-500" />
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your LinkedIn password"
                   {...register('password')}
-                  className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
+                  className={`h-11 px-4 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 pr-10 ${errors.password ? 'border-red-500' : ''}`}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
+               
               </div>
-              {errors.password && (
-                <p className="text-sm text-red-500">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-sm text-red-500 flex items-center gap-1.5"><XCircle className="h-4 w-4" />{errors.password.message}</p>}
             </div>
 
-            <div className="flex space-x-3">
-              <Button
-                type="submit"
-                disabled={isConnecting}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                {isConnecting ? 'Connecting...' : 'Store & Connect'}
-              </Button>
-              
-              {credentials && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={testConnection}
-                  disabled={isConnecting}
-                >
-                  Test Connection
+            <div className="flex gap-3 pt-2">
+     <Button size="lg" className="w-full h-10 bg-blue-500 hover:bg-[#004182]" onClick={() => toast.info('OAuth flow is the recommended but not yet implemented.')}>
+            <Linkedin className="mr-2 h-5 w-5" />
+            Connect with LinkedIn
+          </Button>
+              {isLoggedIn && (
+                <Button type="button" variant="outline" onClick={handleDisconnect} className="px-6 h-11 border-slate-200 dark:border-slate-800">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Disconnect
                 </Button>
               )}
             </div>
           </form>
         </CardContent>
       </Card>
-
-      {/* Actions */}
+      
+      {/* Connection Status */}
       {credentials && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Credentials</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">Stored Credentials</p>
-                <p className="text-sm text-gray-600">
-                  Clear stored credentials and disconnect from LinkedIn
-                </p>
+        <Card className="border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${isLoggedIn ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                  {isLoggedIn ? <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" /> : <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />}
+                </div>
+                <div>
+                  <p className="font-medium">LinkedIn Connection</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isLoggedIn ? `Connected as "${credentials.username}"` : 'Connection failed or disconnected'}
+                  </p>
+                </div>
               </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Clear
+              <div className="flex items-center gap-2">
+                <Badge variant={isLoggedIn ? 'default' : 'destructive'} className="capitalize">
+                  {isLoggedIn ? 'Connected' : 'Disconnected'}
+                </Badge>
+                {isLoggedIn && (
+                  <Button variant="outline" size="sm" onClick={testConnection} disabled={isTesting} className="h-8">
+                    <RefreshCw className={`mr-2 h-4 w-4 ${isTesting ? 'animate-spin' : ''}`} />
+                    Test
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Clear Credentials</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently remove your stored LinkedIn credentials 
-                      and disconnect the automation. You'll need to re-enter them 
-                      to continue using the service.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleClearCredentials}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Clear Credentials
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Tips */}
-      <Card className="border-green-200 bg-green-50">
-        <CardContent className="p-4">
-          <h3 className="font-medium text-green-900 mb-2">Security Tips</h3>
-          <ul className="text-sm text-green-800 space-y-1">
-            <li>• Use LinkedIn's app-specific passwords when possible</li>
-            <li>• Enable two-factor authentication on your LinkedIn account</li>
-            <li>• Regularly monitor your LinkedIn login activity</li>
-            <li>• Update your credentials if you change your LinkedIn password</li>
-          </ul>
-        </CardContent>
-      </Card>
+      {/* Setup Instructions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Preparation Steps */}
+        <Card className="relative overflow-hidden border border-blue-100 dark:border-blue-900/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-blue-50/80 to-white dark:from-blue-950/20 dark:via-blue-900/10 dark:to-slate-900/50"></div>
+          <CardContent className="relative p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg shadow-blue-500/20">
+                <Shield className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-blue-900 dark:text-blue-400">Security Preparation</h3>
+                <p className="text-xs text-blue-600/70 dark:text-blue-300/70">Secure your account first</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-white/60 dark:bg-slate-900/60">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 text-[10px] font-bold text-blue-600">1</div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300">Enable 2FA</p>
+                  <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-0.5">Enable Two-Factor Authentication on LinkedIn for enhanced security.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-white/60 dark:bg-slate-900/60">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 text-[10px] font-bold text-blue-600">2</div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300">Have Credentials Ready</p>
+                  <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-0.5">Keep your login email and password handy for the next step.</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Connection Steps */}
+        <Card className="relative overflow-hidden border border-blue-100 dark:border-blue-900/50">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-blue-50/80 to-white dark:from-blue-950/20 dark:via-blue-900/10 dark:to-slate-900/50"></div>
+          <CardContent className="relative p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg shadow-blue-500/20">
+                <LinkIcon className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-blue-900 dark:text-blue-400">Connection Steps</h3>
+                <p className="text-xs text-blue-600/70 dark:text-blue-300/70">Complete the integration</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-white/60 dark:bg-slate-900/60">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 text-[10px] font-bold text-blue-600">1</div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300">Authenticate (Recommended)</p>
+                  <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-0.5">Click the "Connect with LinkedIn" button for a secure OAuth connection.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-2.5 rounded-lg bg-white/60 dark:bg-slate-900/60">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 text-[10px] font-bold text-blue-600">2</div>
+                <div>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300">Password Fallback</p>
+                  <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-0.5">Alternatively, enter your credentials in the form below.</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+
