@@ -127,7 +127,7 @@ export function CreatePost() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Create Post</h1>
-          <p className="text-gray-600">Create and schedule your LinkedIn content</p>
+          <p className="text-gray-600 text-xs">Create and schedule your LinkedIn content</p>
         </div>
         <div className="flex space-x-3">
           <Button
