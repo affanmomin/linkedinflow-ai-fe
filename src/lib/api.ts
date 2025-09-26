@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:4000';
 
 // Create axios instance with default config
 const api: AxiosInstance = axios.create({
@@ -98,6 +98,70 @@ const mockLinkedInAPI = {
   processPostsFromSource: async (sourceData: any) => {
     await new Promise(resolve => setTimeout(resolve, 3000));
     return { success: true, processed: 5, failed: 0 };
+  },
+};
+
+// Posts API - Updated to use FormData
+export const postsAPI = {
+  createPost: async (postData: {
+    content: string;
+    linkUrl?: string;
+    image?: File;
+    scheduledFor?: string;
+  }) => {
+    try {
+      console.log('API received postData:', postData);
+
+      if (!postData.content || typeof postData.content !== 'string' || !postData.content.trim()) {
+        throw new Error('Content is required and must be non-empty text');
+      }
+
+      // Convert image to base64 if present
+      let imageBase64 = null;
+      if (postData.image) {
+        imageBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(postData.image!);
+        });
+      }
+
+      // Send as JSON with content object
+      const requestData = {
+        content: {
+          text: postData.content.trim()
+        },
+        linkUrl: postData.linkUrl || null,
+        scheduledFor: postData.scheduledFor || null,
+        image: imageBase64 ? {
+          data: imageBase64,
+          name: postData.image?.name,
+          type: postData.image?.type,
+          size: postData.image?.size
+        } : null
+      };
+
+      console.log('Sending JSON with content object:', {
+        content: { text: postData.content.trim() },
+        linkUrl: postData.linkUrl,
+        scheduledFor: postData.scheduledFor,
+        hasImage: !!imageBase64
+      });
+
+      const response = await api.post('/posts', requestData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('Posts API error:', error);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error response data:', error.response?.data);
+      throw error;
+    }
   },
 };
 

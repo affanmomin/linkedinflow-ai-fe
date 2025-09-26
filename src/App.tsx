@@ -13,7 +13,7 @@ import { Analytics } from './pages/Analytics';
 import { LinkedInVault } from './pages/LinkedInVault';
 import { Settings } from './pages/Settings';
 import { useAuthStore } from './store/useAuthStore';
-
+import LinkedInCallback from './pages/LinkedInCallback';
 
 function App() {
   const { isAuthenticated } = useAuthStore();
@@ -44,6 +44,7 @@ function App() {
               <Route path="analytics" element={<Analytics />} />
               <Route path="linkedin-vault" element={<LinkedInVault />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="api/oauth/linkedin/callback" element={<LinkedInCallback />} />
             </Route>
           </Routes>
           <Toaster position="top-right" richColors />

@@ -11,6 +11,7 @@ import {
   Database,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '../lib/api';
 
 // --- Mock UI Components ---
 const Card = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
@@ -59,15 +60,23 @@ export function LinkedInVault() {
   };
 
   const handleOAuthConnect = async () => {
-    toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
-      loading: 'Redirecting to LinkedIn...',
-      success: () => {
-        storeCredentials({ username: 'demo.user@linkedin.com', password: 'password123' });
-        setLoggedIn(true);
-        return 'Successfully connected to LinkedIn!';
-      },
-      error: 'Failed to connect to LinkedIn',
-    });
+    try {
+      const response = await api.get('/oauth/linkedin');
+      if (response.data.authUrl) {
+        window.location.href = response.data.authUrl;
+      }
+    } catch (error) {
+      toast.error('Failed to connect to LinkedIn');
+    }
+  };
+
+  const handleConnectOAuth =async () => {
+    console.log('OAuth connect clicked');
+     const response = await api.get('/oauth/linkedin');
+     console.log('OAuth response:', response);
+     if (response.data.authUrl) {
+       window.location.href = response.data.authUrl;
+     }
   };
 
   const handleDisconnect = () => {
@@ -233,7 +242,7 @@ export function LinkedInVault() {
                       <Button 
                         size="lg" 
                         className="w-full h-10 bg-gradient-to-r from-[#0A66C2] to-[#004182] text-white hover:from-[#004182] hover:to-[#002d5a] shadow-md hover:shadow-blue-500/25 transition-all duration-200 group" 
-                        onClick={handleOAuthConnect}
+                        onClick={handleConnectOAuth}
                       >
                         <Lock className="mr-2 h-3 w-3 group-hover:scale-110 transition-transform" /> 
                         Connect with LinkedIn
