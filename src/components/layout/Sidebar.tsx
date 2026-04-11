@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -7,7 +6,6 @@ import {
   X,
   Linkedin,
   Share2,
-  Database,
   LineChart,
   Lock,
   Sliders,

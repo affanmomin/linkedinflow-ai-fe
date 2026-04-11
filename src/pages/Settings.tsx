@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,9 +38,9 @@ type NotificationFormData = z.infer<typeof notificationSchema>;
 
 export function Settings() {
   const { user } = useAuthStore();
-  const { posts, clearCredentials } = useLinkedInStore();
+  const { posts } = useLinkedInStore();
   const { sheetConnection } = useDataStore();
-  const { theme, actualTheme } = useTheme();
+  const { actualTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
 
   const profileForm = useForm<ProfileFormData>({

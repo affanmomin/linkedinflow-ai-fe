@@ -142,7 +142,7 @@ function PostCard({
 }
 
 export function Posts() {
-  const { posts, setPosts, removePost, setLoading } = useLinkedInStore();
+  const { posts, setPosts, removePost } = useLinkedInStore();
   const [isFetching, setIsFetching] = useState(false);
   const navigate = useNavigate();
 
