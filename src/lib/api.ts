@@ -1,316 +1,233 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
-const API_BASE_URL = 'http://localhost:4000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+const AUTH_TOKEN_KEY = 'auth_token';
+const LEGACY_AUTH_TOKEN_KEY = 'authToken';
 
-// Create axios instance with default config
+const getStoredAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return (
+    window.localStorage.getItem(AUTH_TOKEN_KEY) ??
+    window.localStorage.getItem(LEGACY_AUTH_TOKEN_KEY)
+  );
+};
+
+const setStoredAuthToken = (token: string) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+  window.localStorage.setItem(LEGACY_AUTH_TOKEN_KEY, token);
+};
+
+const clearStoredAuthToken = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(AUTH_TOKEN_KEY);
+  window.localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+};
+
+const extractAuthToken = (payload: any): string | null => {
+  if (!payload) return null;
+
+  if (typeof payload === 'string') return payload;
+
+  const directToken =
+    payload.token ?? payload.accessToken ?? payload.access_token ?? payload.jwt;
+  if (typeof directToken === 'string' && directToken.length > 0) return directToken;
+
+  const sessionToken =
+    payload.session?.token ??
+    payload.session?.accessToken ??
+    payload.session?.access_token ??
+    payload.session?.jwt;
+
+  if (typeof sessionToken === 'string' && sessionToken.length > 0) return sessionToken;
+
+  return null;
+};
+
+const persistAuthTokenFromPayload = (payload: any) => {
+  const token = extractAuthToken(payload);
+  if (token) setStoredAuthToken(token);
+};
+
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // Reduced timeout for faster feedback
+  withCredentials: true, // session cookie sent on every request
+  timeout: 10000,
 });
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
+api.interceptors.request.use((config) => {
+  const token = getStoredAuthToken();
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    if (!config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
 
-// Response interceptor for error handling
+  return config;
+});
+
+// Log the full backend error body in development so we can diagnose issues
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
-    }
+    const url = error.config?.url;
+    const status = error.response?.status;
+    const body = error.response?.data;
+    // Suppress expected 401 on /api/me (unauthenticated user on mount)
+    if (url === '/api/me' && status === 401) return Promise.reject(error);
+    console.error(`[API ${status}] ${error.config?.method?.toUpperCase()} ${url}`, body);
     return Promise.reject(error);
   }
 );
 
-// Mock authentication for development
-const mockAuth = {
-  login: async (email: string, password: string) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check demo credentials
-    if (email === 'admin@example.com' && password === 'password123') {
-      return {
-        user: {
-          id: '1',
-          email: 'admin@example.com',
-          name: 'Admin User',
-        },
-        token: 'mock-jwt-token-' + Date.now(),
-      };
-    }
-    
-    throw new Error('Invalid credentials');
-  },
-};
+// ── Auth ──────────────────────────────────────────────────────────────────────
 
-// Auth API with fallback to mock
 export const authAPI = {
   login: async (email: string, password: string) => {
-    try {
-      // Try real API first
-      const response = await api.post('/auth/login', { email, password });
-      return response.data;
-    } catch (error: any) {
-      // If API is not available, use mock authentication
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock authentication');
-        return await mockAuth.login(email, password);
-      }
-      throw error;
-    }
+    const response = await api.post('/api/signin', { email, password });
+    persistAuthTokenFromPayload(response.data);
+    return response.data; // { user, session }
   },
-  logout: () => {
-    localStorage.removeItem('authToken');
-    window.location.href = '/login';
+
+  register: async (email: string, password: string, name: string) => {
+    const response = await api.post('/api/signup', { email, name, password });
+    persistAuthTokenFromPayload(response.data);
+    return response.data; // { user, session }
+  },
+
+  logout: async () => {
+    const response = await api.post('/api/signout', {});
+    clearStoredAuthToken();
+    return response.data;
+  },
+
+  me: async () => {
+    const response = await api.get('/api/me');
+    persistAuthTokenFromPayload(response.data);
+    return response.data; // { user: { id, name, email, emailVerified, image }, session }
   },
 };
 
-// Mock LinkedIn API for development
-const mockLinkedInAPI = {
-  login: async (credentials: { username: string; password: string }) => {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return { success: true, message: 'LinkedIn connection established' };
+// ── LinkedIn OAuth ────────────────────────────────────────────────────────────
+
+export const linkedInAPI = {
+  /**
+   * Step 1 of OAuth flow.
+   * POST /linkedin/connect { userId } → { url, state }
+   * Redirect the browser to the returned url.
+   */
+  connect: async (userId: string) => {
+    const response = await api.post('/linkedin/connect', { userId });
+    return response.data; // { url: string, state: string }
   },
-  createAndPost: async (postData: {
-    content: string;
-    image?: File;
-    scheduleTime?: string;
-  }) => {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    return { success: true, postId: 'mock-post-' + Date.now() };
+
+  /**
+   * Step 2 of OAuth flow (called by the callback page).
+   * POST /linkedin/finish { code, state }
+   * → { success: true, message, data: { vanityName, userId, tokenId, expiresAt } }
+   * → { success: false, message, error }
+   */
+  finish: async (code: string, state: string, userId?: string) => {
+    const response = await api.post('/linkedin/finish', { code, state, ...(userId ? { userId } : {}) });
+    return response.data;
   },
-  processPostsFromSource: async (sourceData: any) => {
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    return { success: true, processed: 5, failed: 0 };
+
+  /**
+   * Check if a user has a LinkedIn token stored.
+   * GET /linkedin/token/:userId
+   */
+  getToken: async (userId: string) => {
+    const response = await api.get(`/linkedin/token/${userId}`);
+    return response.data; // { success, data: { id, expires_at, person_urn, vanity_name, ... } }
+  },
+
+  /** Delete the stored LinkedIn token for a user */
+  disconnect: async (userId: string) => {
+    const response = await api.delete(`/linkedin/token/${userId}`);
+    return response.data;
   },
 };
 
-// Posts API - Updated to use FormData
+// ── Posts ─────────────────────────────────────────────────────────────────────
+
+export interface Post {
+  id: string;
+  user_id: string;
+  content: string;
+  post_type: 'text' | 'image' | 'link';
+  link_url?: string;
+  linkedin_post_id?: string;
+  status: 'draft' | 'published' | 'failed' | 'scheduled';
+  scheduled_at?: string;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const postsAPI = {
   createPost: async (postData: {
     content: string;
-    linkUrl?: string;
-    image?: File;
-    scheduledFor?: string;
+    post_type?: 'text' | 'image' | 'link';
+    link_url?: string;
+    publish_now?: boolean;
+    scheduled_at?: string; // ISO string — schedule for future
+    image_base64?: string;
+    image_type?: string;
   }) => {
-    try {
-      console.log('API received postData:', postData);
+    const response = await api.post('/posts', {
+      content:      postData.content,
+      post_type:    postData.post_type ?? 'text',
+      link_url:     postData.link_url,
+      publish_now:  postData.publish_now ?? false,
+      scheduled_at: postData.scheduled_at,
+      ...(postData.image_base64 ? {
+        image_base64: postData.image_base64,
+        image_type:   postData.image_type,
+      } : {}),
+    });
+    return response.data; // { success: true, post: Post }
+  },
 
-      if (!postData.content || typeof postData.content !== 'string' || !postData.content.trim()) {
-        throw new Error('Content is required and must be non-empty text');
-      }
+  getPosts: async () => {
+    const response = await api.get('/posts');
+    return response.data; // { posts: Post[] }
+  },
 
-      // Convert image to base64 if present
-      let imageBase64 = null;
-      if (postData.image) {
-        imageBase64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(postData.image!);
-        });
-      }
+  getPost: async (id: string) => {
+    const response = await api.get(`/posts/${id}`);
+    return response.data; // { post: Post }
+  },
 
-      // Send as JSON with content object
-      const requestData = {
-        content: {
-          text: postData.content.trim()
-        },
-        linkUrl: postData.linkUrl || null,
-        scheduledFor: postData.scheduledFor || null,
-        image: imageBase64 ? {
-          data: imageBase64,
-          name: postData.image?.name,
-          type: postData.image?.type,
-          size: postData.image?.size
-        } : null
-      };
+  deletePost: async (id: string) => {
+    const response = await api.delete(`/posts/${id}`);
+    return response.data; // { success: true }
+  },
 
-      console.log('Sending JSON with content object:', {
-        content: { text: postData.content.trim() },
-        linkUrl: postData.linkUrl,
-        scheduledFor: postData.scheduledFor,
-        hasImage: !!imageBase64
-      });
-
-      const response = await api.post('/posts', requestData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('API Response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('Posts API error:', error);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response data:', error.response?.data);
-      throw error;
-    }
+  publishPost: async (id: string) => {
+    const response = await api.patch(`/posts/${id}/publish`);
+    return response.data; // { success: true, post: Post }
   },
 };
 
-// LinkedIn API with fallback to mock
-export const linkedInAPI = {
-  login: async (credentials: { username: string; password: string }) => {
-    try {
-      const response = await api.post('/stagehand/loginToLinkedIn', credentials);
-      return response.data;
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock LinkedIn API');
-        return await mockLinkedInAPI.login(credentials);
-      }
-      throw error;
-    }
-  },
-  createAndPost: async (postData: {
-    content: string;
-    image?: File;
-    scheduleTime?: string;
-  }) => {
-    try {
-      const formData = new FormData();
-      formData.append('content', postData.content);
-      if (postData.image) {
-        formData.append('image', postData.image);
-      }
-      if (postData.scheduleTime) {
-        formData.append('scheduleTime', postData.scheduleTime);
-      }
+// ── Google Sheets (legacy — endpoints not yet in backend spec) ────────────────
 
-      const response = await api.post('/stagehand/createAndPostToLinkedIn', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock LinkedIn API');
-        return await mockLinkedInAPI.createAndPost(postData);
-      }
-      throw error;
-    }
-  },
-  processPostsFromSource: async (sourceData: any) => {
-    try {
-      const response = await api.post('/stagehand/processPostsFromSource', sourceData);
-      return response.data;
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock LinkedIn API');
-        return await mockLinkedInAPI.processPostsFromSource(sourceData);
-      }
-      throw error;
-    }
-  },
-};
-
-// Mock Google Sheets API for development
-const mockSheetsAPI = {
-  testConnection: async (sheetData: {
-    spreadsheetId: string;
-    sheetName: string;
-  }) => {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    return {
-      data: [
-        { content: 'Sample LinkedIn post 1', scheduleTime: '2024-01-15 10:00' },
-        { content: 'Sample LinkedIn post 2', scheduleTime: '2024-01-15 14:00' },
-        { content: 'Sample LinkedIn post 3', scheduleTime: '2024-01-15 18:00' },
-      ],
-    };
-  },
-  uploadAndProcessExcel: async (file: File) => {
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    return {
-      data: [
-        { content: 'Excel post 1', scheduleTime: '2024-01-16 09:00' },
-        { content: 'Excel post 2', scheduleTime: '2024-01-16 13:00' },
-      ],
-    };
-  },
-};
-
-// Google Sheets API with fallback to mock
 export const sheetsAPI = {
-  testConnection: async (sheetData: {
-    spreadsheetId: string;
-    sheetName: string;
-  }) => {
-    try {
-      const response = await api.post('/stagehand/testGoogleSheetsFlow', sheetData);
-      return response.data;
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock Sheets API');
-        return await mockSheetsAPI.testConnection(sheetData);
-      }
-      throw error;
-    }
+  testConnection: async (sheetData: { spreadsheetId: string; sheetName: string }) => {
+    const response = await api.post('/stagehand/testGoogleSheetsFlow', sheetData);
+    return response.data;
   },
   uploadAndProcessExcel: async (file: File) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await api.post('/stagehand/uploadAndProcessExcel', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock Sheets API');
-        return await mockSheetsAPI.uploadAndProcessExcel(file);
-      }
-      throw error;
-    }
-  },
-};
-
-// General API with fallback
-export const generalAPI = {
-  getData: async () => {
-    try {
-      const response = await api.get('/api/getData');
-      return response.data;
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock data');
-        return { data: 'Mock data response' };
-      }
-      throw error;
-    }
-  },
-  createItem: async (data: any) => {
-    try {
-      const response = await api.post('/api/createItem', data);
-      return response.data;
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        console.warn('Backend API not available, using mock response');
-        return { success: true, id: 'mock-item-' + Date.now() };
-      }
-      throw error;
-    }
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/stagehand/uploadAndProcessExcel', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
   },
 };
 

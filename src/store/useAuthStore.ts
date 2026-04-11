@@ -1,46 +1,47 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { authAPI } from '@/lib/api';
 
 interface User {
   id: string;
   email: string;
   name: string;
+  emailVerified?: boolean;
+  image?: string;
 }
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: User, token: string) => void;
-  logout: () => void;
-  setLoading: (loading: boolean) => void;
+  /** Call once on app mount — hits GET /api/me to restore session */
+  checkAuth: () => Promise<void>;
+  setUser: (user: User) => void;
+  logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-      login: (user: User, token: string) => {
-        localStorage.setItem('authToken', token);
-        set({ user, token, isAuthenticated: true });
-      },
-      logout: () => {
-        localStorage.removeItem('authToken');
-        set({ user: null, token: null, isAuthenticated: false });
-      },
-      setLoading: (loading: boolean) => set({ isLoading: loading }),
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-        isAuthenticated: state.isAuthenticated,
-      }),
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+
+  checkAuth: async () => {
+    set({ isLoading: true });
+    try {
+      const data = await authAPI.me();
+      set({ user: data.user, isAuthenticated: true, isLoading: false });
+    } catch {
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
-  )
-);
+  },
+
+  setUser: (user) => set({ user, isAuthenticated: true }),
+
+  logout: async () => {
+    try {
+      await authAPI.logout();
+    } catch {
+      // best-effort — clear state regardless
+    }
+    set({ user: null, isAuthenticated: false });
+  },
+}));

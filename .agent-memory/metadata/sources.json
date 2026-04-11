@@ -1,0 +1,226 @@
+{
+  "file_count": 73,
+  "sources": {
+    "src/components/LinkedInPostDemo.tsx": [
+      "module:src/components"
+    ],
+    "src/components/auth/LoginForm.tsx": [
+      "feature:Auth",
+      "module:src/components"
+    ],
+    "src/components/auth/ProtectedRoute.tsx": [
+      "feature:Auth",
+      "module:src/components"
+    ],
+    "src/components/layout/Header.tsx": [
+      "module:src/components"
+    ],
+    "src/components/layout/Layout.tsx": [
+      "module:src/components"
+    ],
+    "src/components/layout/Sidebar.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/accordion.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/alert-dialog.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/alert.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/aspect-ratio.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/avatar.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/badge.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/breadcrumb.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/button.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/calendar.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/card.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/carousel.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/chart.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/checkbox.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/collapsible.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/command.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/context-menu.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/dialog.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/drawer.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/dropdown-menu.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/form.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/hover-card.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/input-otp.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/input.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/label.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/menubar.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/navigation-menu.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/pagination.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/popover.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/progress.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/radio-group.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/resizable.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/scroll-area.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/select.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/separator.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/sheet.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/skeleton.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/slider.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/sonner.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/switch.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/table.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/tabs.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/textarea.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/theme-toggle.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/toast.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/toaster.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/toggle-group.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/toggle.tsx": [
+      "module:src/components"
+    ],
+    "src/components/ui/tooltip.tsx": [
+      "module:src/components"
+    ],
+    "src/contexts/ThemeContext.tsx": [
+      "module:src/contexts"
+    ],
+    "src/hooks/use-toast.ts": [
+      "module:src/hooks"
+    ],
+    "src/hooks/useLinkedInOAuth.ts": [
+      "module:src/hooks"
+    ],
+    "src/lib/api.ts": [
+      "module:src/lib"
+    ],
+    "src/lib/utils.ts": [
+      "module:src/lib"
+    ],
+    "src/pages/Analytics.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/Automation.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/BatchProcessing.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/CreatePost.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/Dashboard.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/DataManagement.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/LinkedInCallback.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/LinkedInVault.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/Posts.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/Settings.tsx": [
+      "module:src/pages"
+    ],
+    "src/pages/Signup.tsx": [
+      "module:src/pages"
+    ],
+    "src/store/useAuthStore.ts": [
+      "module:src/store"
+    ],
+    "src/store/useDataStore.ts": [
+      "module:src/store"
+    ],
+    "src/store/useLinkedInStore.ts": [
+      "module:src/store"
+    ]
+  }
+}

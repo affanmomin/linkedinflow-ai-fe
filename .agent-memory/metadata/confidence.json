@@ -1,0 +1,62 @@
+{
+  "features": [
+    {
+      "confidence": 0.85,
+      "file_count": 2,
+      "name": "Auth",
+      "slug": "auth",
+      "test_count": 0,
+      "type": "feature"
+    }
+  ],
+  "modules": [
+    {
+      "confidence": 0.65,
+      "file_count": 54,
+      "name": "src/components",
+      "slug": "src-components",
+      "test_count": 0,
+      "type": "module"
+    },
+    {
+      "confidence": 0.7,
+      "file_count": 1,
+      "name": "src/contexts",
+      "slug": "src-contexts",
+      "test_count": 0,
+      "type": "module"
+    },
+    {
+      "confidence": 0.65,
+      "file_count": 2,
+      "name": "src/hooks",
+      "slug": "src-hooks",
+      "test_count": 0,
+      "type": "module"
+    },
+    {
+      "confidence": 0.65,
+      "file_count": 2,
+      "name": "src/lib",
+      "slug": "src-lib",
+      "test_count": 0,
+      "type": "module"
+    },
+    {
+      "confidence": 0.65,
+      "file_count": 11,
+      "name": "src/pages",
+      "slug": "src-pages",
+      "test_count": 0,
+      "type": "module"
+    },
+    {
+      "confidence": 0.65,
+      "file_count": 3,
+      "name": "src/store",
+      "slug": "src-store",
+      "test_count": 0,
+      "type": "module"
+    }
+  ]
+}

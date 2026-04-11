@@ -1,193 +1,118 @@
-import React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { useAuthStore } from "@/store/useAuthStore";
-import { toast } from "sonner";
-import { Eye, EyeOff, Linkedin, AlertCircle } from "lucide-react";
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuthStore } from '@/store/useAuthStore';
+import { authAPI } from '@/lib/api';
+import { toast } from 'sonner';
+import { Eye, EyeOff, Linkedin } from 'lucide-react';
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = React.useState(false);
-  const { login, setLoading, isLoading } = useAuthStore();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { setUser } = useAuthStore();
+  const navigate = useNavigate();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "admin@example.com",
-      password: "password123",
-    },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      setLoading(true);
-      // Demo mode - simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock user data
-      const mockUser = {
-        id: "1",
-        email: data.email,
-        name: "Demo User",
-        role: "admin",
-      };
-
-      login(mockUser, "demo-token");
-      toast.success("Demo Mode: Welcome back!");
+      setIsLoading(true);
+      const result = await authAPI.login(data.email, data.password);
+      setUser(result.user);
+      toast.success('Welcome back!');
+      navigate('/', { replace: true });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.message || 'Login failed. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background p-4">
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-background/80 backdrop-blur-sm">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
-            <Linkedin className="h-8 w-8 text-primary-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-sm">
+        {/* Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
+            <Linkedin className="h-6 w-6 text-primary-foreground" />
           </div>
-          <div className="space-y-2">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Welcome Back
-            </CardTitle>
-            <CardDescription className="text-base">
-              Sign in to your LinkedIn Automation Dashboard
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
+          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+          <p className="text-sm text-muted-foreground mt-1">Sign in to your LinkedInFlow account</p>
+        </div>
+
+        {/* Form card */}
+        <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-5">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
-                {...register("email")}
-                className={cn(
-                  "h-11 transition-all duration-200",
-                  errors.email
-                    ? "border-destructive focus:border-destructive"
-                    : "focus:border-primary"
-                )}
+                placeholder="you@example.com"
+                autoComplete="email"
+                {...register('email')}
               />
               {errors.email && (
-                <p className="text-sm text-destructive flex items-center space-x-1">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{errors.email.message}</span>
-                </p>
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
-                Password
-              </Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  {...register("password")}
-                  className={cn(
-                    "h-11 pr-11 transition-all duration-200",
-                    errors.password
-                      ? "border-destructive focus:border-destructive"
-                      : "focus:border-primary"
-                  )}
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="pr-10"
+                  {...register('password')}
                 />
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-11 px-3 hover:bg-transparent"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </Button>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive flex items-center space-x-1">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{errors.password.message}</span>
-                </p>
+                <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
 
-            <Button
-              type="submit"
-              className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full h-10" disabled={isLoading}>
               {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  <span>Signing in...</span>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                  Signing in…
                 </div>
-              ) : (
-                "Sign In"
-              )}
+              ) : 'Sign in'}
             </Button>
           </form>
 
-          <div className="space-y-4">
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <div className="space-y-2">
-                  <p className="font-medium text-primary text-sm">
-                    Demo Credentials
-                  </p>
-                  <div className="text-sm text-primary/80 space-y-1">
-                    <p>
-                      <span className="font-medium">Email:</span>{" "}
-                      admin@example.com
-                    </p>
-                    <p>
-                      <span className="font-medium">Password:</span> password123
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">
-                If the backend server is not running, the app will work in demo
-                mode with mock data.
-              </p>
-            </div>
+          <div className="text-center text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <Link to="/signup" className="font-medium text-primary hover:underline">
+              Create one
+            </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,156 +3,160 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  MessageSquare,
-  Upload,
-  BarChart3,
-  Settings,
-  Shield,
-  FileSpreadsheet,
   LogOut,
   X,
+  Linkedin,
+  Share2,
+  Database,
+  LineChart,
+  Lock,
+  Sliders,
+  Zap,
+  ChevronRight,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useLinkedInStore } from '@/store/useLinkedInStore';
 
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }
 
-const sidebarItems = [
-  {
-    title: 'Dashboard',
-    href: '/',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Create Post',
-    href: '/create-post',
-    icon: MessageSquare,
-  },
-  // {
-  //   title: 'Batch Processing',
-  //   href: '/batch-processing',
-  //   icon: Upload,
-  // },
-  {
-    title: 'Data Management',
-    href: '/data-management',
-    icon: FileSpreadsheet,
-  },
-  {
-    title: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'LinkedIn Vault',
-    href: '/linkedin-vault',
-    icon: Shield,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
-  },
-];
-
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const location = useLocation();
   const { logout, user } = useAuthStore();
+  const { posts } = useLinkedInStore();
+  const pendingCount = posts.filter(p => p.status === 'draft' || p.status === 'scheduled').length;
 
-  const handleLogout = () => {
-    logout();
-  };
+  const navSections = [
+    {
+      label: 'Main',
+      items: [
+        { title: 'Dashboard',   href: '/',            icon: LayoutDashboard },
+        { title: 'Create Post', href: '/create-post', icon: Share2 },
+        { title: 'Posts',       href: '/posts',       icon: FileText, badge: pendingCount > 0 ? pendingCount : null },
+      ],
+    },
+    {
+      label: 'Data',
+      items: [
+        // { title: 'Data Management', href: '/data-management', icon: Database },
+        { title: 'Analytics',       href: '/analytics',       icon: LineChart },
+        { title: 'LinkedIn Vault',  href: '/linkedin-vault',  icon: Lock },
+      ],
+    },
+    {
+      label: 'Configuration',
+      items: [
+        { title: 'Automation', href: '/automation', icon: Zap },
+        { title: 'Settings',   href: '/settings',   icon: Sliders },
+      ],
+    },
+  ];
 
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div
+      <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-full w-64 transform bg-background border-r transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0',
+          'fixed left-0 top-0 z-50 h-full w-60 flex flex-col',
+          'bg-[hsl(var(--sidebar-bg))] border-r border-[hsl(var(--sidebar-border))]',
+          'transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Header */}
-        <div className="flex h-16 items-center justify-between px-6 border-b">
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-primary-foreground" />
+        {/* Brand */}
+        <div className="flex h-14 items-center justify-between px-4 border-b border-border shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+              <Linkedin className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold">LinkedIn Pro</span>
+            <span className="text-sm font-semibold text-foreground">LinkedInFlow</span>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden"
+            className="lg:hidden h-7 w-7 p-0"
             onClick={() => setIsOpen(false)}
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </Button>
-        </div>
-
-        {/* User info */}
-        <div className="px-6 py-4 border-b bg-muted/30">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-sm font-medium text-primary-foreground">
-                {user?.name?.charAt(0) || 'U'}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium">{user?.name || 'User'}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
-            </div>
-          </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6">
-          <div className="space-y-1">
-            {sidebarItems.map((item) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={cn(
-                    'flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:bg-muted',
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
-                </Link>
-              );
-            })}
-          </div>
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
+          {navSections.map((section) => (
+            <div key={section.label}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-1.5">
+                {section.label}
+              </p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={() => setIsOpen(false)}
+                      className={cn(
+                        'flex items-center justify-between rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span>{item.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {'badge' in item && item.badge ? (
+                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-semibold px-1">
+                            {item.badge}
+                          </span>
+                        ) : null}
+                        {isActive && <ChevronRight className="h-3.5 w-3.5 opacity-70" />}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        {/* Logout */}
-        <div className="p-4 border-t">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            onClick={handleLogout}
+        {/* User + Logout */}
+        <div className="shrink-0 border-t border-border p-3 space-y-1">
+          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-md">
+            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-xs font-semibold text-primary">
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-foreground truncate">{user?.name || 'User'}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email || ''}</p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
-            <LogOut className="mr-3 h-5 w-5" />
-            Logout
-          </Button>
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span>Sign out</span>
+          </button>
         </div>
-      </div>
+      </aside>
     </>
   );
 }

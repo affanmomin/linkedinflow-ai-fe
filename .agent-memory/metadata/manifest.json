@@ -1,0 +1,90 @@
+{
+  "config_files": [
+    "package.json",
+    "tsconfig.json"
+  ],
+  "discovered_docs_dirs": [],
+  "discovered_languages": [
+    "javascript",
+    "typescript"
+  ],
+  "discovered_test_dirs": [],
+  "framework_hints": [
+    "React",
+    "Vite"
+  ],
+  "generated_artifacts": [
+    {
+      "artifact_id": "claude-md",
+      "artifact_type": "claude-md",
+      "relative_path": ".agent-memory/CLAUDE.md"
+    },
+    {
+      "artifact_id": "architecture",
+      "artifact_type": "architecture",
+      "relative_path": ".agent-memory/architecture.md"
+    },
+    {
+      "artifact_id": "changes:hotspots",
+      "artifact_type": "changes",
+      "relative_path": ".agent-memory/changes/hotspots.md"
+    },
+    {
+      "artifact_id": "feature:auth",
+      "artifact_type": "feature",
+      "relative_path": ".agent-memory/features/auth.md"
+    },
+    {
+      "artifact_id": "module:src-components",
+      "artifact_type": "module",
+      "relative_path": ".agent-memory/modules/src-components.md"
+    },
+    {
+      "artifact_id": "module:src-contexts",
+      "artifact_type": "module",
+      "relative_path": ".agent-memory/modules/src-contexts.md"
+    },
+    {
+      "artifact_id": "module:src-hooks",
+      "artifact_type": "module",
+      "relative_path": ".agent-memory/modules/src-hooks.md"
+    },
+    {
+      "artifact_id": "module:src-lib",
+      "artifact_type": "module",
+      "relative_path": ".agent-memory/modules/src-lib.md"
+    },
+    {
+      "artifact_id": "module:src-pages",
+      "artifact_type": "module",
+      "relative_path": ".agent-memory/modules/src-pages.md"
+    },
+    {
+      "artifact_id": "module:src-store",
+      "artifact_type": "module",
+      "relative_path": ".agent-memory/modules/src-store.md"
+    },
+    {
+      "artifact_id": "repo",
+      "artifact_type": "repo",
+      "relative_path": ".agent-memory/repo.md"
+    },
+    {
+      "artifact_id": "rules:conventions",
+      "artifact_type": "rules",
+      "relative_path": ".agent-memory/rules/conventions.md"
+    },
+    {
+      "artifact_id": "rules:safe-boundaries",
+      "artifact_type": "rules",
+      "relative_path": ".agent-memory/rules/safe-boundaries.md"
+    }
+  ],
+  "generated_at": "2026-04-11T10:56:50.375101+00:00",
+  "repo_root": "C:\\Users\\Lenovo\\Desktop\\Linkedinflow-fe",
+  "scan_confidence": 1.0,
+  "source_roots": [
+    "src"
+  ],
+  "version": "1"
+}
