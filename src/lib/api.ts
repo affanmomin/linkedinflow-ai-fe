@@ -54,7 +54,6 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // session cookie sent on every request
   timeout: 10000,
 });
 
