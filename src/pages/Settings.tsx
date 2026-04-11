@@ -88,7 +88,6 @@ export function Settings() {
   };
 
   const clearAllData = () => {
-    clearCredentials();
     localStorage.clear();
     toast.success('All local data cleared.');
   };
