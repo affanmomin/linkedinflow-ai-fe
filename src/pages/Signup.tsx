@@ -44,7 +44,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#d3e7f5] flex items-center justify-center p-4 sm:p-8">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-8">
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
 
         <AuthLeftPanel tagline="Join thousands growing their network on autopilot." />
