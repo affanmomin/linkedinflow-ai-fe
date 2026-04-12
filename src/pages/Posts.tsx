@@ -18,12 +18,14 @@ import {
   Link as LinkIcon,
   Calendar,
   FileUp,
+  Pencil,
 } from 'lucide-react';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
 import { postsAPI, type Post } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ImportModal } from '@/components/posts/ImportModal';
+import { EditPostModal } from '@/components/posts/EditPostModal';
 
 type StatusFilter = 'all' | 'draft' | 'scheduled' | 'published' | 'failed';
 
@@ -44,10 +46,12 @@ function PostCard({
   post,
   onDelete,
   onPublish,
+  onEdit,
 }: {
   post: Post;
   onDelete: (id: string) => void;
   onPublish: (id: string) => void;
+  onEdit:   (post: Post) => void;
 }) {
   const [deleting,   setDeleting]   = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -114,6 +118,21 @@ function PostCard({
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 shrink-0">
+        {/* Edit — available for draft and scheduled posts */}
+        {(post.status === 'draft' || post.status === 'scheduled') && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 px-2.5 text-xs"
+            onClick={() => onEdit(post)}
+            disabled={publishing || deleting}
+          >
+            <Pencil className="mr-1 h-3 w-3" />
+            Edit
+          </Button>
+        )}
+
+        {/* Publish — draft only */}
         {post.status === 'draft' && (
           <Button
             size="sm"
@@ -127,6 +146,7 @@ function PostCard({
               : <><Send className="mr-1 h-3 w-3" />Publish</>}
           </Button>
         )}
+
         <Button
           size="sm"
           variant="ghost"
@@ -147,6 +167,7 @@ export function Posts() {
   const { posts, setPosts, removePost } = useLinkedInStore();
   const [isFetching,    setIsFetching]    = useState(false);
   const [importOpen,    setImportOpen]    = useState(false);
+  const [editingPost,   setEditingPost]   = useState<Post | null>(null);
   const navigate = useNavigate();
 
   const draftCount     = posts.filter(p => p.status === 'draft').length;
@@ -163,6 +184,12 @@ export function Posts() {
   }, []);
 
   const handleDelete = (id: string) => removePost(id);
+
+  const handleEdit = (post: Post) => setEditingPost(post);
+
+  const handlePostUpdated = (updated: Post) => {
+    setPosts(posts.map(p => p.id === updated.id ? updated : p));
+  };
 
   const handlePublish = (id: string) => {
     // Update local store: mark as published
@@ -317,6 +344,7 @@ export function Posts() {
                           post={post}
                           onDelete={handleDelete}
                           onPublish={handlePublish}
+                          onEdit={handleEdit}
                         />
                       ))}
                     </div>
@@ -327,6 +355,13 @@ export function Posts() {
           )}
         </CardContent>
       </Card>
+
+      <EditPostModal
+        post={editingPost}
+        open={editingPost !== null}
+        onOpenChange={(o) => { if (!o) setEditingPost(null); }}
+        onSaved={handlePostUpdated}
+      />
 
       <ImportModal
         open={importOpen}

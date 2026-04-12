@@ -36,9 +36,14 @@ export function Dashboard() {
   }, []);
 
   const successfulPosts = posts.filter(p => p.status === 'published').length;
-  const failedPosts    = posts.filter(p => p.status === 'failed').length;
-  const draftPosts     = posts.filter(p => p.status === 'draft').length;
-  const recentPosts    = posts.slice(0, 5);
+  const failedPosts     = posts.filter(p => p.status === 'failed').length;
+  const draftPosts      = posts.filter(p => p.status === 'draft').length;
+  const scheduledPosts  = posts.filter(p => p.status === 'scheduled').length;
+
+  // Sorted newest-first, show up to 10
+  const recentPosts = [...posts]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10);
 
   const stats = [
     {
@@ -48,16 +53,16 @@ export function Dashboard() {
       sub: 'All time',
     },
     {
-      title: 'Success Rate',
-      value: posts.length > 0 ? `${Math.round((successfulPosts / posts.length) * 100)}%` : '—',
+      title: 'Published',
+      value: successfulPosts,
       icon: Target,
-      sub: `${successfulPosts} published`,
+      sub: posts.length > 0 ? `${Math.round((successfulPosts / posts.length) * 100)}% success rate` : 'No posts yet',
     },
     {
-      title: 'Drafts',
-      value: draftPosts,
+      title: 'Scheduled',
+      value: scheduledPosts,
       icon: Calendar,
-      sub: 'Pending publish',
+      sub: 'Queued to publish',
     },
     {
       title: 'Failed',
@@ -139,11 +144,12 @@ export function Dashboard() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 pt-1">
+            <div className="grid grid-cols-4 gap-2 pt-1">
               {[
                 { label: 'Published', value: successfulPosts, color: 'text-emerald-600 dark:text-emerald-400', icon: CheckCircle },
-                { label: 'Drafts',    value: draftPosts,     color: 'text-amber-600 dark:text-amber-400',   icon: Clock },
-                { label: 'Failed',    value: failedPosts,    color: 'text-rose-600 dark:text-rose-400',     icon: XCircle },
+                { label: 'Scheduled', value: scheduledPosts,  color: 'text-blue-600 dark:text-blue-400',       icon: Calendar },
+                { label: 'Drafts',    value: draftPosts,      color: 'text-amber-600 dark:text-amber-400',     icon: Clock },
+                { label: 'Failed',    value: failedPosts,     color: 'text-rose-600 dark:text-rose-400',       icon: XCircle },
               ].map((item) => (
                 <div key={item.label} className="text-center p-3 rounded-lg bg-muted/50">
                   <item.icon className={cn('h-4 w-4 mx-auto mb-1', item.color)} />
@@ -229,34 +235,48 @@ export function Dashboard() {
             <div className="icon-container-sm">
               <MessageSquare className="h-3.5 w-3.5" />
             </div>
-            Recent Posts
+            All Posts
+            {posts.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                {posts.length}
+              </Badge>
+            )}
           </CardTitle>
-          {recentPosts.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => navigate('/create-post')}>
-              View all
+          {posts.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => navigate('/posts')}>
+              Manage posts
               <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           )}
         </CardHeader>
         <CardContent>
           {recentPosts.length > 0 ? (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border max-h-[480px] overflow-y-auto custom-scrollbar pr-1">
               {recentPosts.map((post) => (
                 <div key={post.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 space-y-0.5">
                     <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
                       {post.content}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(post.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                      {post.status === 'scheduled' && post.scheduled_at && (
+                        <span className="text-blue-600 dark:text-blue-400 font-medium">
+                          · Scheduled {new Date(post.scheduled_at).toLocaleString()}
+                        </span>
+                      )}
+                      {post.status === 'published' && post.published_at && (
+                        <span>· Published {new Date(post.published_at).toLocaleDateString()}</span>
+                      )}
+                    </div>
                   </div>
                   <Badge
                     variant="outline"
                     className={cn(
-                      'text-xs shrink-0',
+                      'text-xs shrink-0 capitalize',
                       post.status === 'published' ? 'badge-success' :
                       post.status === 'failed'    ? 'badge-error' :
+                      post.status === 'scheduled' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800' :
                                                     'badge-warning'
                     )}
                   >
@@ -264,6 +284,14 @@ export function Dashboard() {
                   </Badge>
                 </div>
               ))}
+              {posts.length > 10 && (
+                <div className="pt-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/posts')}>
+                    View all {posts.length} posts
+                    <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-10">

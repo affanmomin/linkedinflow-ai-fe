@@ -213,6 +213,24 @@ export const postsAPI = {
   },
 
   /**
+   * PATCH /posts/:id
+   * Update content, link_url, post_type, or scheduled_at of a draft/scheduled post.
+   * Pass scheduled_at: null to clear the schedule (converts back to draft).
+   */
+  updatePost: async (
+    id: string,
+    updates: {
+      content?:      string;
+      link_url?:     string | null;
+      post_type?:    'text' | 'image' | 'link';
+      scheduled_at?: string | null;
+    }
+  ) => {
+    const response = await api.patch(`/posts/${id}`, updates);
+    return response.data as { success: boolean; post: Post };
+  },
+
+  /**
    * GET /posts/import/template
    * Downloads the Excel template file and triggers a browser download.
    */

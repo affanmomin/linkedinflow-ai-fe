@@ -351,7 +351,7 @@ export function CreatePost() {
                       id="schedule-toggle"
                       checked={schedule}
                       onCheckedChange={(v) => { setValue('schedule', v); if (v) setValue('publish_now', false); }}
-                      disabled={!isLinkedInConnected || publishNow}
+                      disabled={publishNow}
                     />
                   </div>
 
@@ -360,7 +360,12 @@ export function CreatePost() {
                       <Input
                         type="datetime-local"
                         value={scheduledAt}
-                        min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                        min={(() => {
+                          const d = new Date(Date.now() + 60_000);
+                          return new Date(d.getTime() - d.getTimezoneOffset() * 60_000)
+                            .toISOString()
+                            .slice(0, 16);
+                        })()}
                         onChange={(e) => setScheduledAt(e.target.value)}
                         className="text-sm"
                       />
@@ -370,7 +375,7 @@ export function CreatePost() {
 
                 {!isLinkedInConnected && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Connect LinkedIn to publish or schedule posts.
+                    Connect LinkedIn to publish posts. You can still schedule posts now — they'll publish once connected.
                   </p>
                 )}
               </div>
