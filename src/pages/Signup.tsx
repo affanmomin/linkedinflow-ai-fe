@@ -6,10 +6,8 @@ import { authAPI } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Linkedin } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { AuthLeftPanel } from '@/components/auth/AuthIllustration';
 
 const signupSchema = z.object({
   name:     z.string().min(2, 'Name must be at least 2 characters'),
@@ -19,10 +17,13 @@ const signupSchema = z.object({
 
 type SignupData = z.infer<typeof signupSchema>;
 
+const footerLinks = ['User Agreement', 'Privacy Policy', 'Cookie Policy', 'Help Center'];
+
 export default function Signup() {
-  const [isLoading, setIsLoading] = useState(false);
-  const { setUser } = useAuthStore();
-  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading]       = useState(false);
+  const { setUser }  = useAuthStore();
+  const navigate     = useNavigate();
 
   const { register, handleSubmit, formState: { errors } } = useForm<SignupData>({
     resolver: zodResolver(signupSchema),
@@ -43,71 +44,134 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <div className="w-full max-w-sm">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
-            <Linkedin className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
-          <p className="text-sm text-muted-foreground mt-1">Start automating your LinkedIn presence</p>
-        </div>
+    <div className="min-h-screen bg-[#d3e7f5] flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
 
-        {/* Form card */}
-        <div className="bg-card border border-border rounded-xl p-6 shadow-sm space-y-5">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Full name</Label>
-              <Input
-                id="name"
-                placeholder="Jane Smith"
-                autoComplete="name"
-                {...register('name')}
-              />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
+        <AuthLeftPanel tagline="Join thousands growing their network on autopilot." />
 
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                autoComplete="email"
-                {...register('email')}
-              />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
+        {/* ── Right: form panel ── */}
+        <div className="md:w-[58%] flex flex-col px-8 py-10 sm:px-12 sm:py-12">
 
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Min. 6 characters"
-                autoComplete="new-password"
-                {...register('password')}
-              />
-              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-            </div>
+          <div className="flex-1 flex flex-col justify-center">
+            <div className="w-full max-w-[360px] mx-auto">
 
-            <Button type="submit" className="w-full h-10" disabled={isLoading}>
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                  Creating account…
+              <h1 className="text-[28px] font-bold text-gray-900 leading-tight">
+                Create account
+              </h1>
+              <p className="mt-1.5 mb-8 text-sm text-gray-500">
+                Start automating your LinkedIn presence
+              </p>
+
+              <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+
+                {/* Full name */}
+                <div className="space-y-1.5">
+                  <label htmlFor="su-name" className="block text-[13px] font-semibold text-gray-700">
+                    Full name
+                  </label>
+                  <input
+                    id="su-name"
+                    type="text"
+                    placeholder="Jane Smith"
+                    autoComplete="name"
+                    {...register('name')}
+                    className="w-full h-11 px-3.5 rounded-md text-sm bg-[#eaf3fb] border border-[#c2daf0] text-gray-900 placeholder-[#93b5cc] focus:outline-none focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] transition-colors"
+                  />
+                  {errors.name && (
+                    <p className="text-xs text-red-500">{errors.name.message}</p>
+                  )}
                 </div>
-              ) : 'Create account'}
-            </Button>
-          </form>
 
-          <div className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-primary hover:underline">
-              Sign in
-            </Link>
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <label htmlFor="su-email" className="block text-[13px] font-semibold text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    id="su-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    {...register('email')}
+                    className="w-full h-11 px-3.5 rounded-md text-sm bg-[#eaf3fb] border border-[#c2daf0] text-gray-900 placeholder-[#93b5cc] focus:outline-none focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] transition-colors"
+                  />
+                  {errors.email && (
+                    <p className="text-xs text-red-500">{errors.email.message}</p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div className="space-y-1.5">
+                  <label htmlFor="su-password" className="block text-[13px] font-semibold text-gray-700">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="su-password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Min. 6 characters"
+                      autoComplete="new-password"
+                      {...register('password')}
+                      className="w-full h-11 px-3.5 pr-11 rounded-md text-sm bg-[#eaf3fb] border border-[#c2daf0] text-gray-900 placeholder-[#93b5cc] focus:outline-none focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7aaac4] hover:text-[#0a66c2] transition-colors"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-xs text-red-500">{errors.password.message}</p>
+                  )}
+                </div>
+
+                {/* Terms note */}
+                <p className="text-[12px] text-gray-400 leading-relaxed">
+                  By clicking <span className="font-medium text-gray-500">Create account</span>, you
+                  agree to our{' '}
+                  <Link to="#" className="text-[#0a66c2] hover:underline">User Agreement</Link>
+                  {' '}and{' '}
+                  <Link to="#" className="text-[#0a66c2] hover:underline">Privacy Policy</Link>.
+                </p>
+
+                {/* Buttons */}
+                <div className="flex gap-3 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 h-11 rounded-full text-[14px] font-semibold bg-[#0a66c2] text-white hover:bg-[#004182] active:bg-[#003471] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Creating…
+                      </>
+                    ) : 'Create account'}
+                  </button>
+                  <Link
+                    to="/login"
+                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border-2 border-[#0a66c2] text-[#0a66c2] hover:bg-[#eaf3fb] active:bg-[#daeaf8] transition-colors flex items-center justify-center"
+                  >
+                    Sign in
+                  </Link>
+                </div>
+
+              </form>
+            </div>
           </div>
+
+          {/* Footer */}
+          <div className="mt-8 flex flex-wrap justify-center gap-x-3 gap-y-1">
+            {footerLinks.map((item) => (
+              <Link key={item} to="#" className="text-[11px] text-[#6fa0be] hover:underline">
+                {item}
+              </Link>
+            ))}
+          </div>
+
         </div>
       </div>
     </div>
