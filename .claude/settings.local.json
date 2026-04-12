@@ -4,7 +4,9 @@
       "Bash(npm list:*)",
       "Bash(npx repo-memory:*)",
       "Bash(npx tsc:*)",
-      "Bash(pnpm run:*)"
+      "Bash(pnpm run:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(pnpm build:*)"
     ]
   }
 }
