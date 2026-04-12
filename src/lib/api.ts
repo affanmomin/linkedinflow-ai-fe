@@ -211,6 +211,45 @@ export const postsAPI = {
     const response = await api.patch(`/posts/${id}/publish`);
     return response.data; // { success: true, post: Post }
   },
+
+  /**
+   * GET /posts/import/template
+   * Downloads the Excel template file and triggers a browser download.
+   */
+  downloadTemplate: async () => {
+    const response = await api.get('/posts/import/template', {
+      responseType: 'blob',
+    });
+    const cd       = response.headers['content-disposition'] as string | undefined;
+    const match    = cd?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    const filename = match ? match[1].replace(/['"]/g, '') : 'posts_template.xlsx';
+    const url = URL.createObjectURL(response.data as Blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  /**
+   * POST /posts/import  (multipart/form-data, field name: "file")
+   * Returns { imported, failed, errors: [{ row, message }] }
+   */
+  importPosts: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/posts/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60_000,
+    });
+    return response.data as {
+      imported: number;
+      failed:   number;
+      errors:   { row: number; message: string }[];
+    };
+  },
 };
 
 // ── Google Sheets (legacy — endpoints not yet in backend spec) ────────────────

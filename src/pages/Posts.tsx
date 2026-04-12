@@ -17,11 +17,13 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   Calendar,
+  FileUp,
 } from 'lucide-react';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
 import { postsAPI, type Post } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ImportModal } from '@/components/posts/ImportModal';
 
 type StatusFilter = 'all' | 'draft' | 'scheduled' | 'published' | 'failed';
 
@@ -143,7 +145,8 @@ function PostCard({
 
 export function Posts() {
   const { posts, setPosts, removePost } = useLinkedInStore();
-  const [isFetching, setIsFetching] = useState(false);
+  const [isFetching,    setIsFetching]    = useState(false);
+  const [importOpen,    setImportOpen]    = useState(false);
   const navigate = useNavigate();
 
   const draftCount     = posts.filter(p => p.status === 'draft').length;
@@ -215,6 +218,10 @@ export function Posts() {
           >
             <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isFetching && 'animate-spin')} />
             Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <FileUp className="mr-1.5 h-3.5 w-3.5" />
+            Import from Excel
           </Button>
           <Button size="sm" onClick={() => navigate('/create-post')}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -320,6 +327,18 @@ export function Posts() {
           )}
         </CardContent>
       </Card>
+
+      <ImportModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImportDone={() => {
+          setIsFetching(true);
+          postsAPI.getPosts()
+            .then(data => setPosts(data.posts ?? []))
+            .catch(() => toast.error('Failed to refresh posts after import.'))
+            .finally(() => setIsFetching(false));
+        }}
+      />
     </div>
   );
 }
