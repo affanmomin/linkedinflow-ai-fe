@@ -252,16 +252,16 @@ export const postsAPI = {
   },
 
   /**
-   * POST /posts/import  (multipart/form-data, field name: "file")
+   * POST /posts/import  (application/json)
+   * Body: { filename: string, file: "<base64 string>" }
    * Returns { imported, failed, errors: [{ row, message }] }
    */
-  importPosts: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await api.post('/posts/import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 60_000,
-    });
+  importPosts: async (filename: string, base64: string) => {
+    const response = await api.post(
+      '/posts/import',
+      { filename, file: base64 },
+      { timeout: 60_000 },
+    );
     return response.data as {
       imported: number;
       failed:   number;

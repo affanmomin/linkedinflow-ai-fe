@@ -412,7 +412,20 @@ export function ImportModal({ open, onOpenChange, onImportDone }: ImportModalPro
     setStep('importing');
 
     try {
-      const data = await postsAPI.importPosts(file);
+      // Read the file as a data URL, then strip the "data:...;base64," prefix
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = (e) => {
+          const dataUrl = e.target?.result as string;
+          const base64  = dataUrl.split(',')[1];   // everything after the comma
+          if (!base64) reject(new Error('Failed to encode file.'));
+          else resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file.'));
+        reader.readAsDataURL(file);
+      });
+
+      const data = await postsAPI.importPosts(file.name, base64);
       setResult({
         imported: data.imported ?? 0,
         failed:   data.failed   ?? 0,
