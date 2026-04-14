@@ -13,6 +13,7 @@ import { LinkedInVault } from './pages/LinkedInVault';
 import { Settings } from './pages/Settings';
 import { Automation } from './pages/Automation';
 import { Posts } from './pages/Posts';
+import { ContentCalendar } from './pages/ContentCalendar';
 import { useAuthStore } from './store/useAuthStore';
 import LinkedInCallback from './pages/LinkedInCallback';
 import Signup from './pages/Signup';
@@ -69,6 +70,7 @@ function App() {
               <Route path="analytics" element={<Analytics />} />
               <Route path="linkedin-vault" element={<LinkedInVault />} />
               <Route path="posts" element={<Posts />} />
+              <Route path="content-calendar" element={<ContentCalendar />} />
               <Route path="automation" element={<Automation />} />
               <Route path="settings" element={<Settings />} />
             </Route>

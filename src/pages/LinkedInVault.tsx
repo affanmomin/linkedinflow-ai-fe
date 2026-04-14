@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Shield,
   Trash2,
@@ -12,27 +12,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLinkedInOAuth } from '../hooks/useLinkedInOAuth';
-
-const Card = ({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={`rounded-xl border bg-white text-card-foreground shadow-sm transition-all hover:shadow-md dark:bg-slate-900 dark:border-slate-800 ${className}`}
-    {...props}
-  />
-);
-const CardContent = ({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`p-6 ${className}`} {...props} />
-);
-const Button = ({
-  className = '',
-  variant: _variant,
-  size: _size,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }) => (
-  <button
-    className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-slate-950 dark:focus-visible:ring-slate-800 ${className}`}
-    {...props}
-  />
-);
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export function LinkedInVault() {
   const [isTesting, setIsTesting] = useState(false);
@@ -72,155 +53,129 @@ export function LinkedInVault() {
   const showRevoked = linkedInStatus !== null && !isConnected && isExpired;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/30">
-      <div className="space-y-6 p-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-emerald-600/10 rounded-2xl blur-2xl" />
-            <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 rounded-xl p-5 shadow-lg">
+    <div className="space-y-6 animate-fade-in">
+      <div className="relative">
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-lime-300/18 via-lime-100/10 to-lime-300/14 blur-2xl" />
+        <div className="relative rounded-2xl border border-black/15 bg-white/88 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.1)] backdrop-blur-xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <div className="rounded-xl bg-lime-300/20 p-2 text-lime-300 shadow-[0_0_0_1px_rgba(163,230,53,0.22)_inset]">
+                <Database className="h-4 w-4" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-black">LinkedIn Vault</h1>
+                <p className="text-xs font-medium text-black/70">
+                  Securely manage your LinkedIn connection for automation
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast.info('Help is not yet implemented.')}
+              className="!border-black/20 !bg-white !text-black hover:!bg-black/5"
+            >
+              <HelpCircle className="mr-1 h-3 w-3" />
+              Help
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <main className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <Card className="group relative mt-1 overflow-hidden border-black/10 bg-white/86 text-black shadow-[0_8px_22px_rgba(0,0,0,0.1)] backdrop-blur-md transition-all duration-300 hover:bg-white/94">
+            <div className="absolute inset-0 bg-gradient-to-br from-lime-300/12 to-transparent opacity-80" />
+            <CardContent className="relative p-4">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-md">
-                    <Database className="h-4 w-4 text-white" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="rounded-lg bg-lime-300/20 p-2 text-lime-300 shadow-[0_0_0_1px_rgba(163,230,53,0.22)_inset]">
+                    <Shield className="h-4 w-4" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 dark:from-white dark:via-blue-100 dark:to-purple-100 bg-clip-text text-transparent">
-                      LinkedIn Vault
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400 text-xs font-medium">
-                      Securely manage your LinkedIn connection for automation
+                    <h3 className="text-base font-bold text-black">Security Preparation</h3>
+                    <p className="text-xs font-normal text-black/70">
+                      Essential security steps before connecting
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toast.info('Help is not yet implemented.')}
-                  className="group border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200"
-                >
-                  <HelpCircle className="mr-1 h-3 w-3 group-hover:scale-110 transition-transform" />
-                  Help
-                </Button>
+                <div className="ml-4 border-l-2 border-lime-500/25 pl-2 text-sm text-black/80 space-y-4">
+                  <div className="relative pl-8">
+                    <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-lime-100 text-[10px] font-bold text-lime-700 shadow-[0_0_0_1px_rgba(132,204,22,0.28)_inset]">1</div>
+                    <p className="font-semibold text-black">Enable 2FA</p>
+                    <p className="text-xs">Enable Two-Factor Authentication on your LinkedIn account for enhanced security.</p>
+                  </div>
+                  <div className="relative pl-8">
+                    <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-lime-100 text-[10px] font-bold text-lime-700 shadow-[0_0_0_1px_rgba(132,204,22,0.28)_inset]">2</div>
+                    <p className="font-semibold text-black">Authorize the App</p>
+                    <p className="text-xs">Follow the on-screen prompts from LinkedIn to securely authorize the connection.</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Main Content */}
-          <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Info cards */}
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="group relative overflow-hidden mt-5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 hover:shadow-lg transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30 opacity-50" />
-                <CardContent className="relative p-4">
+          <Card className="group relative overflow-hidden border-black/10 bg-white/86 text-black shadow-[0_8px_22px_rgba(0,0,0,0.1)] backdrop-blur-md transition-all duration-300 hover:bg-white/94">
+            <div className="absolute inset-0 bg-gradient-to-br from-lime-300/10 to-transparent opacity-60" />
+            <CardContent className="relative p-4">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
-                      <Shield className="h-4 w-4 text-white" />
+                    <div className="rounded-lg bg-lime-300/20 p-2 text-lime-300 shadow-[0_0_0_1px_rgba(163,230,53,0.22)_inset]">
+                      <LinkIcon className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                        Security Preparation
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 font-normal">
-                        Essential security steps before connecting
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-4 text-sm text-slate-600 dark:text-slate-400 pl-2 border-l-2 border-blue-200/50 dark:border-blue-800/50 ml-4">
-                    <div className="pl-8 relative">
-                      <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-bold shadow-md">
-                        1
-                      </div>
-                      <p className="font-semibold text-slate-700 dark:text-slate-300">Enable 2FA</p>
-                      <p className="text-xs">
-                        Enable Two-Factor Authentication on your LinkedIn account for enhanced security.
-                      </p>
-                    </div>
-                    <div className="pl-8 relative">
-                      <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-bold shadow-md">
-                        2
-                      </div>
-                      <p className="font-semibold text-slate-700 dark:text-slate-300">Authorize the App</p>
-                      <p className="text-xs">
-                        Follow the on-screen prompts from LinkedIn to securely authorize the connection.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="group relative overflow-hidden bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 hover:shadow-lg transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-green-50/50 dark:from-emerald-950/30 dark:to-green-950/30 opacity-50" />
-                <CardContent className="relative p-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg shadow-md">
-                      <LinkIcon className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">How It Works</h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 font-normal">
+                      <h3 className="text-base font-bold text-black">How It Works</h3>
+                      <p className="text-xs font-normal text-black/70">
                         Understanding the connection process
                       </p>
                     </div>
                   </div>
-                  <div className="space-y-4 text-sm text-slate-600 dark:text-slate-400 pl-2 border-l-2 border-emerald-200/50 dark:border-emerald-800/50 ml-4">
-                    <div className="pl-8 relative">
-                      <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-xs font-bold shadow-md">
-                        1
-                      </div>
-                      <p className="font-semibold text-slate-700 dark:text-slate-300">Secure Connection</p>
-                      <p className="text-xs">
-                        We use the official LinkedIn OAuth 2.0 protocol. Your password is never stored on our servers.
-                      </p>
-                    </div>
-                    <div className="pl-8 relative">
-                      <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-xs font-bold shadow-md">
-                        2
-                      </div>
-                      <p className="font-semibold text-slate-700 dark:text-slate-300">Token-Based Automation</p>
-                      <p className="text-xs">
-                        Once connected, we use a secure token to perform actions on your behalf, which you can revoke anytime.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+              <div className="ml-4 border-l-2 border-lime-500/25 pl-2 text-sm text-black/80 space-y-4">
+                <div className="relative pl-8">
+                  <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-lime-100 text-[10px] font-bold text-lime-700 shadow-[0_0_0_1px_rgba(132,204,22,0.28)_inset]">1</div>
+                  <p className="font-semibold text-black">Secure Connection</p>
+                  <p className="text-xs">We use official LinkedIn OAuth 2.0. Your password is never stored on our servers.</p>
+                </div>
+                <div className="relative pl-8">
+                  <div className="absolute left-[-9px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-lime-100 text-[10px] font-bold text-lime-700 shadow-[0_0_0_1px_rgba(132,204,22,0.28)_inset]">2</div>
+                  <p className="font-semibold text-black">Token-Based Automation</p>
+                  <p className="text-xs">Once connected, secure tokens perform actions on your behalf and can be revoked anytime.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Right: Connection Status */}
-            <div className="lg:col-span-1">
-              <Card className="overflow-hidden mt-5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 hover:shadow-lg transition-all duration-300 sticky top-8">
-                <CardContent className="p-4 space-y-6">
+        <div className="lg:col-span-1">
+          <Card className="sticky top-6 overflow-hidden border-black/10 bg-white/88 text-black shadow-[0_8px_22px_rgba(0,0,0,0.1)] backdrop-blur-md">
+            <CardContent className="space-y-6 p-4">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <div
-                        className={`p-2 rounded-lg shadow-md ${
+                        className={`rounded-lg p-2 shadow-[0_0_0_1px_rgba(132,204,22,0.28)_inset] ${
                           showConnected
-                            ? 'bg-gradient-to-br from-emerald-500 to-green-600'
-                            : 'bg-gradient-to-br from-slate-500 to-gray-600'
+                            ? 'bg-lime-100 text-lime-700'
+                            : 'bg-slate-100 text-slate-500'
                         }`}
                       >
-                        <Linkedin className="h-4 w-4 text-white" />
+                        <Linkedin className="h-4 w-4" />
                       </div>
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                        Connection Status
-                      </h3>
+                      <h3 className="text-base font-bold text-black">Connection Status</h3>
                     </div>
                   </div>
 
                   {!showConnected ? (
                     <div className="text-center space-y-4">
-                      <div className="mx-auto w-16 h-16 flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-white/20 dark:border-slate-700/50">
-                        <Linkedin className="h-8 w-8 text-[#0A66C2]" />
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/8">
+                        <Linkedin className="h-8 w-8 text-lime-300" />
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                      <p className="text-xs font-medium text-black/75">
                         {showRevoked
                           ? 'Your LinkedIn token has expired. Please reconnect.'
                           : 'No account connected. Connect your LinkedIn to enable automation.'}
                       </p>
                       <Button
                         size="lg"
-                        className="w-full h-10 bg-gradient-to-r from-[#0A66C2] to-[#004182] text-white hover:from-[#004182] hover:to-[#002d5a] shadow-md hover:shadow-blue-500/25 transition-all duration-200 group"
+                          className="group h-10 w-full !border-lime-500/35 !bg-lime-100 !text-black hover:!bg-lime-200"
                         onClick={handleConnect}
                         disabled={isLoading}
                       >
@@ -238,19 +193,15 @@ export function LinkedInVault() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-3 bg-emerald-100/50 dark:bg-emerald-900/30 p-4 rounded-lg border border-emerald-200/50 dark:border-emerald-800/50">
-                        <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                      <div className="flex items-center gap-3 rounded-lg border border-lime-300/40 bg-lime-50 p-4">
+                        <CheckCircle className="h-5 w-5 flex-shrink-0 text-lime-600" />
                         <div>
-                          <p className="font-semibold text-emerald-800 dark:text-emerald-200 text-sm">
-                            Successfully Connected
-                          </p>
+                          <p className="text-sm font-semibold text-lime-700">Successfully Connected</p>
                           {vanityName && (
-                            <p className="text-xs text-emerald-700 dark:text-emerald-300 truncate">
-                              @{vanityName}
-                            </p>
+                            <p className="truncate text-xs text-black/75">@{vanityName}</p>
                           )}
                           {connectedAt && (
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                            <p className="text-xs text-black/70">
                               Connected: {new Date(connectedAt).toLocaleDateString()}
                             </p>
                           )}
@@ -262,7 +213,7 @@ export function LinkedInVault() {
                           size="sm"
                           onClick={handleTest}
                           disabled={isTesting || isLoading}
-                          className="w-full h-9 bg-white/50 dark:bg-slate-800/50 border-slate-200/50 dark:border-slate-700/50 hover:bg-white/70 dark:hover:bg-slate-800/70 transition-all duration-200 group"
+                          className="h-9 w-full !border-black/20 !bg-white !text-black hover:!bg-black/5"
                         >
                           <RefreshCw className={`${isTesting ? 'animate-spin' : ''} mr-2 h-3 w-3`} />
                           Test Connection
@@ -272,7 +223,7 @@ export function LinkedInVault() {
                           variant="outline"
                           onClick={handleDisconnect}
                           disabled={isLoading}
-                          className="w-full h-9 bg-white/50 dark:bg-slate-800/50 text-rose-600 border-slate-200/50 dark:border-slate-700/50 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:border-rose-200 dark:hover:border-rose-800 transition-all duration-200 group"
+                          className="h-9 w-full !border-rose-300/45 !bg-rose-100 !text-rose-800 hover:!bg-rose-200"
                         >
                           <Trash2 className="mr-2 h-3 w-3" />
                           Disconnect
@@ -280,12 +231,10 @@ export function LinkedInVault() {
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-          </main>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

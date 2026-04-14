@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { PageError } from '@/components/ui/page-error';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   MessageSquare,
   Plus,
@@ -17,47 +22,78 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   Calendar,
+  Video,
   FileUp,
   Pencil,
+  Search,
+  X,
 } from 'lucide-react';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
 import { postsAPI, type Post } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import { ImportModal } from '@/components/posts/ImportModal';
 import { EditPostModal } from '@/components/posts/EditPostModal';
 
 type StatusFilter = 'all' | 'draft' | 'scheduled' | 'published' | 'failed';
 
-const statusConfig = {
-  published: { label: 'Published', icon: CheckCircle, badge: 'badge-success' },
-  draft:     { label: 'Draft',     icon: Clock,       badge: 'badge-warning' },
-  scheduled: { label: 'Scheduled', icon: Calendar,    badge: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-800' },
-  failed:    { label: 'Failed',    icon: XCircle,     badge: 'badge-error' },
-};
+const statusMeta = {
+  published: {
+    label: 'Published', icon: CheckCircle,
+    dot: 'bg-emerald-500', badge: 'badge-success',
+    text: 'text-emerald-700 dark:text-emerald-400',
+  },
+  draft: {
+    label: 'Draft', icon: Clock,
+    dot: 'bg-amber-400', badge: 'badge-warning',
+    text: 'text-amber-700 dark:text-amber-400',
+  },
+  scheduled: {
+    label: 'Scheduled', icon: Calendar,
+    dot: 'bg-blue-500', badge: 'badge-info',
+    text: 'text-blue-700 dark:text-blue-400',
+  },
+  failed: {
+    label: 'Failed', icon: XCircle,
+    dot: 'bg-rose-500', badge: 'badge-error',
+    text: 'text-rose-700 dark:text-rose-400',
+  },
+} as const;
 
 const typeIcon = {
   text:  FileText,
   image: ImageIcon,
   link:  LinkIcon,
+  video: Video,
 };
+
+function getFailureReason(post: Post): string | null {
+  return post.failure_reason ?? post.error_message ?? post.error ?? null;
+}
+
+// ── Post Card ─────────────────────────────────────────────────────────────────
 
 function PostCard({
   post,
   onDelete,
   onPublish,
   onEdit,
+  isSelected,
+  onToggleSelect,
 }: {
   post: Post;
   onDelete: (id: string) => void;
   onPublish: (id: string) => void;
-  onEdit:   (post: Post) => void;
+  onEdit: (post: Post) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const [deleting,   setDeleting]   = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const cfg     = statusConfig[post.status];
-  const Icon    = cfg.icon;
+  const meta     = statusMeta[post.status];
   const TypeIcon = typeIcon[post.post_type] ?? FileText;
+  const failureReason = post.status === 'failed' ? getFailureReason(post) : null;
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -79,80 +115,123 @@ function PostCard({
       onPublish(post.id);
       toast.success('Post published to LinkedIn!');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to publish post.');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to publish post.');
     } finally {
       setPublishing(false);
     }
   };
 
   return (
-    <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-card hover:shadow-sm transition-shadow">
+    <div
+      className={cn(
+        'post-card group',
+        isSelected && 'border-primary/40 bg-primary/[0.02]',
+      )}
+      data-status={post.status}
+    >
+      {/* Checkbox */}
+      {onToggleSelect && (
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelect(post.id)}
+          className="mt-0.5 shrink-0"
+          aria-label="Select post"
+        />
+      )}
+
       {/* Type icon */}
       <div className="icon-container-sm shrink-0 mt-0.5">
         <TypeIcon className="h-3.5 w-3.5" />
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 space-y-2">
-        <p className="text-sm text-foreground line-clamp-3 leading-relaxed">{post.content}</p>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline" className={cn('text-xs capitalize', cfg.badge)}>
-            <Icon className="mr-1 h-3 w-3" />
-            {cfg.label}
-          </Badge>
-          <span>Created {new Date(post.created_at).toLocaleDateString()}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] text-foreground line-clamp-2 leading-relaxed">{post.content}</p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5 text-[11px] text-muted-foreground">
+          <span className={cn('flex items-center gap-1 font-medium', meta.text)}>
+            <span className={cn('h-1.5 w-1.5 rounded-full', meta.dot)} />
+            {meta.label}
+          </span>
+          <span>·</span>
+          <span>{format(new Date(post.created_at), 'MMM d, yyyy')}</span>
+          <span>·</span>
+          <span className="capitalize">{post.post_type}</span>
           {post.status === 'scheduled' && post.scheduled_at && (
-            <span className="text-blue-600 dark:text-blue-400 font-medium">
-              · Scheduled for {new Date(post.scheduled_at).toLocaleString()}
-            </span>
+            <>
+              <span>·</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Sends {format(new Date(post.scheduled_at), 'MMM d, h:mm a')}
+              </span>
+            </>
           )}
-          {post.published_at && (
-            <span>· Published {new Date(post.published_at).toLocaleDateString()}</span>
+          {post.status === 'published' && post.published_at && (
+            <>
+              <span>·</span>
+              <span>Published {format(new Date(post.published_at), 'MMM d')}</span>
+            </>
           )}
           {post.link_url && (
-            <span className="truncate max-w-[160px]">· {post.link_url}</span>
+            <>
+              <span>·</span>
+              <span className="truncate max-w-[140px]">{post.link_url}</span>
+            </>
           )}
         </div>
+
+        {failureReason && (
+          <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-2 text-[11px] text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+            <p className="font-semibold uppercase tracking-wide text-[10px] mb-0.5">Failure reason</p>
+            <p className="leading-relaxed break-words">{failureReason}</p>
+          </div>
+        )}
+
+        {post.status === 'failed' && !failureReason && (
+          <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-2 text-[11px] text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
+            <p className="font-semibold uppercase tracking-wide text-[10px] mb-0.5">Failure reason</p>
+            <p className="leading-relaxed break-words">
+              No failure reason was returned by the backend for this post.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* Edit — available for draft and scheduled posts */}
+      <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
         {(post.status === 'draft' || post.status === 'scheduled') && (
           <Button
             size="sm"
-            variant="outline"
-            className="h-8 px-2.5 text-xs"
+            variant="ghost"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
             onClick={() => onEdit(post)}
             disabled={publishing || deleting}
+            aria-label="Edit post"
           >
-            <Pencil className="mr-1 h-3 w-3" />
-            Edit
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}
 
-        {/* Publish — draft only */}
         {post.status === 'draft' && (
           <Button
             size="sm"
             variant="outline"
-            className="h-8 px-2.5 text-xs"
+            className="h-7 px-2.5 text-xs gap-1"
             onClick={handlePublish}
             disabled={publishing || deleting}
+            aria-label="Publish post"
           >
             {publishing
               ? <RefreshCw className="h-3 w-3 animate-spin" />
-              : <><Send className="mr-1 h-3 w-3" />Publish</>}
+              : <><Send className="h-3 w-3" />Publish</>}
           </Button>
         )}
 
         <Button
           size="sm"
           variant="ghost"
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           onClick={handleDelete}
           disabled={deleting || publishing}
+          aria-label="Delete post"
         >
           {deleting
             ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -163,92 +242,150 @@ function PostCard({
   );
 }
 
+// ── Posts page ────────────────────────────────────────────────────────────────
+
 export function Posts() {
   const { posts, setPosts, removePost } = useLinkedInStore();
-  const [isFetching,    setIsFetching]    = useState(false);
-  const [importOpen,    setImportOpen]    = useState(false);
-  const [editingPost,   setEditingPost]   = useState<Post | null>(null);
+  const [isFetching,       setIsFetching]       = useState(true);
+  const [fetchError,       setFetchError]        = useState<string | null>(null);
+  const [importOpen,       setImportOpen]        = useState(false);
+  const [editingPost,      setEditingPost]       = useState<Post | null>(null);
+  const [searchQuery,      setSearchQuery]       = useState('');
+  const [selectedIds,      setSelectedIds]       = useState<Set<string>>(new Set());
+  const [isBulkDeleting,   setIsBulkDeleting]   = useState(false);
+  const [isBulkPublishing, setIsBulkPublishing] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const draftCount     = posts.filter(p => p.status === 'draft').length;
   const scheduledCount = posts.filter(p => p.status === 'scheduled').length;
   const publishedCount = posts.filter(p => p.status === 'published').length;
   const failedCount    = posts.filter(p => p.status === 'failed').length;
 
-  useEffect(() => {
+  const fetchPosts = () => {
     setIsFetching(true);
+    setFetchError(null);
     postsAPI.getPosts()
       .then(data => setPosts(data.posts ?? []))
-      .catch(() => toast.error('Failed to load posts.'))
+      .catch(() => setFetchError('Could not load posts. Check your connection and try again.'))
       .finally(() => setIsFetching(false));
-  }, []);
+  };
 
-  const handleDelete = (id: string) => removePost(id);
+  useEffect(() => { fetchPosts(); }, []);
 
-  const handleEdit = (post: Post) => setEditingPost(post);
+  // Silent background poll for scheduled posts
+  useEffect(() => {
+    const hasScheduled = posts.some(p => p.status === 'scheduled');
+    if (!hasScheduled) return;
+    const interval = setInterval(() => {
+      postsAPI.getPosts()
+        .then(data => setPosts(data.posts ?? []))
+        .catch(() => {});
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [posts]);
+
+  useEffect(() => {
+    if (searchParams.get('import') === '1') {
+      setImportOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleDelete = (id: string) => {
+    removePost(id);
+    setSelectedIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+  };
 
   const handlePostUpdated = (updated: Post) => {
     setPosts(posts.map(p => p.id === updated.id ? updated : p));
   };
 
   const handlePublish = (id: string) => {
-    // Update local store: mark as published
-    const updated = posts.map(p =>
+    setPosts(posts.map(p =>
       p.id === id ? { ...p, status: 'published' as const, published_at: new Date().toISOString() } : p
-    );
-    setPosts(updated);
+    ));
   };
 
-  const filtered = (status: StatusFilter) =>
-    status === 'all' ? posts : posts.filter(p => p.status === status);
+  const toggleSelect   = (id: string) => {
+    setSelectedIds(prev => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
+  };
+  const selectAll      = (list: Post[]) => setSelectedIds(new Set(list.map(p => p.id)));
+  const clearSelection = ()             => setSelectedIds(new Set());
 
-  const EmptyState = ({ label }: { label: string }) => (
-    <div className="text-center py-12">
-      <div className="icon-container mx-auto mb-3">
-        <MessageSquare className="h-5 w-5" />
-      </div>
-      <h3 className="text-sm font-medium text-foreground mb-1">No {label} posts</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        {label === 'draft'
-          ? 'Save a post as draft and it will appear here.'
-          : `No ${label} posts yet.`}
-      </p>
-      <Button size="sm" onClick={() => navigate('/create-post')}>
-        <Plus className="mr-1.5 h-3.5 w-3.5" />
-        Create post
-      </Button>
-    </div>
-  );
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    const ids = Array.from(selectedIds);
+    const results = await Promise.allSettled(ids.map(id => postsAPI.deletePost(id)));
+    const succeeded = ids.filter((_, i) => results[i].status === 'fulfilled');
+    succeeded.forEach(id => removePost(id));
+    clearSelection();
+    setIsBulkDeleting(false);
+    succeeded.length === ids.length
+      ? toast.success(`Deleted ${succeeded.length} post${succeeded.length > 1 ? 's' : ''}.`)
+      : toast.warning(`Deleted ${succeeded.length} of ${ids.length} posts.`);
+  };
+
+  const handleBulkPublish = async () => {
+    setIsBulkPublishing(true);
+    const ids = Array.from(selectedIds).filter(id => posts.find(p => p.id === id)?.status === 'draft');
+    if (ids.length === 0) { toast.info('No draft posts selected.'); setIsBulkPublishing(false); return; }
+    const results = await Promise.allSettled(ids.map(id => postsAPI.publishPost(id)));
+    const succeeded = ids.filter((_, i) => results[i].status === 'fulfilled');
+    if (succeeded.length > 0) {
+      setPosts(posts.map(p =>
+        succeeded.includes(p.id)
+          ? { ...p, status: 'published' as const, published_at: new Date().toISOString() }
+          : p
+      ));
+    }
+    clearSelection();
+    setIsBulkPublishing(false);
+    succeeded.length === ids.length
+      ? toast.success(`Published ${succeeded.length} post${succeeded.length > 1 ? 's' : ''}.`)
+      : toast.warning(`Published ${succeeded.length} of ${ids.length} posts.`);
+  };
+
+  const filtered = (status: StatusFilter) => {
+    const base = status === 'all' ? posts : posts.filter(p => p.status === status);
+    if (!searchQuery.trim()) return base;
+    const q = searchQuery.toLowerCase();
+    return base.filter(p => p.content.toLowerCase().includes(q));
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
+
+      {/* ── Page header ──────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Posts</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage your drafts, published posts, and failed posts.
-          </p>
+          <h1 className="page-title">Posts</h1>
+          <p className="page-description">Manage drafts, scheduled, and published posts.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
               setIsFetching(true);
+              setFetchError(null);
               postsAPI.getPosts()
                 .then(data => { setPosts(data.posts ?? []); toast.success('Refreshed.'); })
-                .catch(() => toast.error('Failed to refresh.'))
+                .catch(() => { setFetchError('Refresh failed.'); toast.error('Failed to refresh.'); })
                 .finally(() => setIsFetching(false));
             }}
             disabled={isFetching}
           >
-            <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isFetching && 'animate-spin')} />
-            Refresh
+            <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
+            <span className="hidden sm:inline ml-1.5">Refresh</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-            <FileUp className="mr-1.5 h-3.5 w-3.5" />
-            Import from Excel
+            <FileUp className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline ml-1.5">Import</span>
           </Button>
           <Button size="sm" onClick={() => navigate('/create-post')}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -257,50 +394,90 @@ export function Posts() {
         </div>
       </div>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* ── Summary stats ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'Drafts',    value: draftCount,     icon: Clock,     color: 'text-amber-600 dark:text-amber-400' },
-          { label: 'Scheduled', value: scheduledCount, icon: Calendar,  color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'Published', value: publishedCount, icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400' },
-          { label: 'Failed',    value: failedCount,    icon: XCircle,   color: 'text-rose-600 dark:text-rose-400' },
+          { label: 'Drafts',    value: draftCount,     icon: Clock,       color: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-500/10' },
+          { label: 'Scheduled', value: scheduledCount, icon: Calendar,    color: 'text-blue-600 dark:text-blue-400',     bg: 'bg-blue-500/10' },
+          { label: 'Published', value: publishedCount, icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: 'Failed',    value: failedCount,    icon: XCircle,     color: 'text-rose-600 dark:text-rose-400',     bg: 'bg-rose-500/10' },
         ].map((s) => (
-          <Card key={s.label} className="card-hover">
-            <CardContent className="p-4 flex items-center gap-3">
-              <s.icon className={cn('h-5 w-5 shrink-0', s.color)} />
-              <div>
-                <p className="text-2xl font-semibold">{s.value}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={s.label} className="metric-card flex items-center gap-3 py-3.5">
+            <div className={cn('flex items-center justify-center w-8 h-8 rounded-md shrink-0', s.bg)}>
+              <s.icon className={cn('h-4 w-4', s.color)} />
+            </div>
+            <div>
+              <p className={cn('text-xl font-bold tabular-nums', s.color)}>{s.value}</p>
+              <p className="text-[11px] text-muted-foreground font-medium">{s.label}</p>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Posts list */}
+      {/* ── Posts list ────────────────────────────────────────────── */}
       <Card>
-        <CardHeader className="pb-0">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <div className="icon-container-sm">
               <MessageSquare className="h-3.5 w-3.5" />
             </div>
             All Posts
+            {posts.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{posts.length}</Badge>
+            )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="space-y-4">
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search posts…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9 pr-8 h-9 text-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Error */}
+          {fetchError && <PageError message={fetchError} onRetry={fetchPosts} />}
+
+          {/* Skeleton */}
           {isFetching ? (
-            <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading posts…</span>
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-start gap-3 p-4 border border-border rounded-xl">
+                  <Skeleton className="h-7 w-7 rounded-md shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
+                    <Skeleton className="h-2.5 w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <Tabs defaultValue="draft">
-              <TabsList className="mb-4 flex-wrap h-auto gap-1">
-                <TabsTrigger value="all" className="text-xs gap-1.5">
+            <Tabs
+              defaultValue="draft"
+              onValueChange={() => { setSearchQuery(''); clearSelection(); }}
+            >
+              {/* Tab list */}
+              <TabsList className="mb-4 flex-wrap h-auto gap-1 bg-muted/50 p-1">
+                <TabsTrigger value="all" className="text-xs gap-1.5 h-7">
                   All
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{posts.length}</Badge>
                 </TabsTrigger>
-                <TabsTrigger value="draft" className="text-xs gap-1.5">
+                <TabsTrigger value="draft" className="text-xs gap-1.5 h-7">
                   Drafts
                   {draftCount > 0 && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
@@ -308,7 +485,7 @@ export function Posts() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="scheduled" className="text-xs gap-1.5">
+                <TabsTrigger value="scheduled" className="text-xs gap-1.5 h-7">
                   Scheduled
                   {scheduledCount > 0 && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
@@ -316,13 +493,13 @@ export function Posts() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="published" className="text-xs gap-1.5">
+                <TabsTrigger value="published" className="text-xs gap-1.5 h-7">
                   Published
                   {publishedCount > 0 && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{publishedCount}</Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="failed" className="text-xs gap-1.5">
+                <TabsTrigger value="failed" className="text-xs gap-1.5 h-7">
                   Failed
                   {failedCount > 0 && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
@@ -332,25 +509,102 @@ export function Posts() {
                 </TabsTrigger>
               </TabsList>
 
-              {(['all', 'draft', 'scheduled', 'published', 'failed'] as StatusFilter[]).map((tab) => (
-                <TabsContent key={tab} value={tab}>
-                  {filtered(tab).length === 0 ? (
-                    <EmptyState label={tab} />
-                  ) : (
-                    <div className="space-y-2">
-                      {filtered(tab).map(post => (
-                        <PostCard
-                          key={post.id}
-                          post={post}
-                          onDelete={handleDelete}
-                          onPublish={handlePublish}
-                          onEdit={handleEdit}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
+              {/* Tab content */}
+              {(['all', 'draft', 'scheduled', 'published', 'failed'] as StatusFilter[]).map((tab) => {
+                const tabPosts  = filtered(tab);
+                const allSel    = tabPosts.length > 0 && tabPosts.every(p => selectedIds.has(p.id));
+                return (
+                  <TabsContent key={tab} value={tab} className="space-y-2 mt-0">
+                    {tabPosts.length === 0 ? (
+                      <EmptyState
+                        icon={MessageSquare}
+                        title={searchQuery
+                          ? 'No posts match your search'
+                          : `No ${tab === 'all' ? '' : tab + ' '}posts yet`}
+                        description={searchQuery
+                          ? 'Try a different search term.'
+                          : tab === 'draft'
+                            ? 'Save a post as draft and it will appear here.'
+                            : `No ${tab} posts yet.`}
+                        action={!searchQuery
+                          ? { label: 'Create post', onClick: () => navigate('/create-post'), icon: Plus }
+                          : undefined}
+                      />
+                    ) : (
+                      <>
+                        {/* Select all / bulk bar */}
+                        <div className="flex items-center justify-between py-1 px-0.5">
+                          <button
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => allSel ? clearSelection() : selectAll(tabPosts)}
+                          >
+                            {allSel ? 'Deselect all' : `Select all ${tabPosts.length}`}
+                          </button>
+                          {selectedIds.size > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              {selectedIds.size} selected
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Bulk action bar */}
+                        {selectedIds.size > 0 && (
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-muted/40">
+                            <span className="text-xs font-medium text-foreground">
+                              {selectedIds.size} selected
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2.5 text-xs gap-1"
+                              onClick={handleBulkPublish}
+                              disabled={isBulkPublishing || isBulkDeleting}
+                            >
+                              {isBulkPublishing
+                                ? <RefreshCw className="h-3 w-3 animate-spin" />
+                                : <><Send className="h-3 w-3" />Publish drafts</>}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2.5 text-xs gap-1 text-destructive hover:bg-destructive/10 border-destructive/30"
+                              onClick={handleBulkDelete}
+                              disabled={isBulkDeleting || isBulkPublishing}
+                            >
+                              {isBulkDeleting
+                                ? <RefreshCw className="h-3 w-3 animate-spin" />
+                                : <><Trash2 className="h-3 w-3" />Delete</>}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2.5 text-xs ml-auto"
+                              onClick={clearSelection}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Post list */}
+                        <div className="space-y-1.5">
+                          {tabPosts.map(post => (
+                            <PostCard
+                              key={post.id}
+                              post={post}
+                              onDelete={handleDelete}
+                              onPublish={handlePublish}
+                              onEdit={p => setEditingPost(p)}
+                              isSelected={selectedIds.has(post.id)}
+                              onToggleSelect={toggleSelect}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </TabsContent>
+                );
+              })}
             </Tabs>
           )}
         </CardContent>

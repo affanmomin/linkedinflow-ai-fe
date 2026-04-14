@@ -45,21 +45,21 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#d3e7f5] flex items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-screen dashboard-shell flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-5xl bg-[#f3f3f1] rounded-3xl border-2 border-black/60 shadow-[0_24px_90px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col md:flex-row">
 
         <AuthLeftPanel />
 
         {/* ── Right: form panel ── */}
-        <div className="md:w-[58%] flex flex-col px-8 py-10 sm:px-12 sm:py-12">
+        <div className="md:w-[58%] flex flex-col px-8 py-10 sm:px-12 sm:py-12 bg-[#f3f3f1]">
 
           <div className="flex-1 flex flex-col justify-center">
             <div className="w-full max-w-[360px] mx-auto">
 
-              <h1 className="text-[28px] font-bold text-gray-900 leading-tight">
+              <h1 className="text-[30px] font-bold text-black leading-tight tracking-tight">
                 Welcome back
               </h1>
-              <p className="mt-1.5 mb-8 text-sm text-gray-500">
+              <p className="mt-1.5 mb-8 text-sm text-black/60">
                 Sign in to your LinkedInFlow account
               </p>
 
@@ -67,7 +67,7 @@ export function LoginForm() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                  <label htmlFor="li-email" className="block text-[13px] font-semibold text-gray-700">
+                  <label htmlFor="li-email" className="block text-[13px] font-semibold text-black/80">
                     Email or Phone
                   </label>
                   <input
@@ -76,7 +76,7 @@ export function LoginForm() {
                     placeholder="you@example.com"
                     autoComplete="email"
                     {...register('email')}
-                    className="w-full h-11 px-3.5 rounded-md text-sm bg-[#eaf3fb] border border-[#c2daf0] text-gray-900 placeholder-[#93b5cc] focus:outline-none focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] transition-colors"
+                    className="w-full h-11 px-3.5 rounded-full text-sm bg-white border-2 border-black/25 text-black placeholder:text-black/45 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-300/45 transition-colors"
                   />
                   {errors.email && (
                     <p className="text-xs text-red-500">{errors.email.message}</p>
@@ -85,7 +85,7 @@ export function LoginForm() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <label htmlFor="li-password" className="block text-[13px] font-semibold text-gray-700">
+                  <label htmlFor="li-password" className="block text-[13px] font-semibold text-black/80">
                     Password
                   </label>
                   <div className="relative">
@@ -95,12 +95,12 @@ export function LoginForm() {
                       placeholder="••••••••"
                       autoComplete="current-password"
                       {...register('password')}
-                      className="w-full h-11 px-3.5 pr-11 rounded-md text-sm bg-[#eaf3fb] border border-[#c2daf0] text-gray-900 placeholder-[#93b5cc] focus:outline-none focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] transition-colors"
+                      className="w-full h-11 px-3.5 pr-11 rounded-full text-sm bg-white border-2 border-black/25 text-black placeholder:text-black/45 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-300/45 transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7aaac4] hover:text-[#0a66c2] transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 hover:text-black transition-colors"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -113,7 +113,7 @@ export function LoginForm() {
 
                 {/* Forgot password */}
                 <div className="flex justify-end -mt-1">
-                  <Link to="#" className="text-[13px] font-medium text-[#0a66c2] hover:underline">
+                  <Link to="#" className="text-[13px] font-medium text-black/70 hover:text-black hover:underline">
                     Forgot password?
                   </Link>
                 </div>
@@ -123,7 +123,7 @@ export function LoginForm() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 h-11 rounded-full text-[14px] font-semibold bg-[#0a66c2] text-white hover:bg-[#004182] active:bg-[#003471] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border-2 border-black bg-black text-white hover:bg-black/90 active:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <>
@@ -134,7 +134,7 @@ export function LoginForm() {
                   </button>
                   <Link
                     to="/signup"
-                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border-2 border-[#0a66c2] text-[#0a66c2] hover:bg-[#eaf3fb] active:bg-[#daeaf8] transition-colors flex items-center justify-center"
+                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border-2 border-lime-500/45 bg-lime-100 text-black hover:bg-lime-200 active:bg-lime-300/60 transition-colors flex items-center justify-center"
                   >
                     Sign up
                   </Link>
@@ -147,7 +147,7 @@ export function LoginForm() {
           {/* Footer */}
           <div className="mt-8 flex flex-wrap justify-center gap-x-3 gap-y-1">
             {footerLinks.map((item) => (
-              <Link key={item} to="#" className="text-[11px] text-[#6fa0be] hover:underline">
+              <Link key={item} to="#" className="text-[11px] text-black/45 hover:text-black/70 hover:underline">
                 {item}
               </Link>
             ))}

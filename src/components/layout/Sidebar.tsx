@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -10,53 +10,67 @@ import {
   Lock,
   Sliders,
   Zap,
-  ChevronRight,
   FileText,
+  CalendarDays,
+  FileUp,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
 
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
 }
 
-export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
-  const location = useLocation();
-  const { logout, user } = useAuthStore();
-  const { posts } = useLinkedInStore();
-  const pendingCount = posts.filter(p => p.status === 'draft' || p.status === 'scheduled').length;
+const navSections = [
+  {
+    label: 'Workspace',
+    items: [
+      { title: 'Dashboard',   href: '/',                 icon: LayoutDashboard },
+      { title: 'Posts',       href: '/posts',            icon: FileText        },
+      { title: 'Import Posts',href: '/posts?import=1',   icon: FileUp          },
+      { title: 'Planner',     href: '/content-calendar', icon: CalendarDays    },
+      { title: 'Create Post', href: '/create-post',      icon: Share2          },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { title: 'Analytics',      href: '/analytics',      icon: LineChart },
+      { title: 'LinkedIn Vault', href: '/linkedin-vault', icon: Lock      },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { title: 'Automation', href: '/automation', icon: Zap     },
+      { title: 'Settings',   href: '/settings',   icon: Sliders },
+    ],
+  },
+];
 
-  const navSections = [
-    {
-      label: 'Main',
-      items: [
-        { title: 'Dashboard',   href: '/',            icon: LayoutDashboard },
-        { title: 'Create Post', href: '/create-post', icon: Share2 },
-        { title: 'Posts',       href: '/posts',       icon: FileText, badge: pendingCount > 0 ? pendingCount : null },
-      ],
-    },
-    {
-      label: 'Data',
-      items: [
-        // { title: 'Data Management', href: '/data-management', icon: Database },
-        { title: 'Analytics',       href: '/analytics',       icon: LineChart },
-        { title: 'LinkedIn Vault',  href: '/linkedin-vault',  icon: Lock },
-      ],
-    },
-    {
-      label: 'Configuration',
-      items: [
-        { title: 'Automation', href: '/automation', icon: Zap },
-        { title: 'Settings',   href: '/settings',   icon: Sliders },
-      ],
-    },
-  ];
+export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: SidebarProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, user }          = useAuthStore();
+  const { posts } = useLinkedInStore();
+
+  const draftCount     = posts.filter(p => p.status === 'draft').length;
+  const scheduledCount = posts.filter(p => p.status === 'scheduled').length;
+
+  const badgeFor = (href: string) => {
+    if (href === '/posts' && draftCount + scheduledCount > 0)
+      return draftCount + scheduledCount;
+    return null;
+  };
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -64,67 +78,87 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar panel */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-full w-60 flex flex-col',
-          'bg-[hsl(var(--sidebar-bg))] border-r border-[hsl(var(--sidebar-border))]',
-          'transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed left-0 top-0 z-50 h-full w-[280px] flex flex-col overflow-hidden lg:overflow-visible',
+          'border-r border-white/10 bg-[#050607] text-white backdrop-blur-xl',
+          'lg:m-4 lg:h-[calc(100vh-2rem)] lg:rounded-[28px] lg:border lg:border-white/10 lg:shadow-[0_16px_40px_rgba(0,0,0,0.45)]',
+          isCollapsed ? 'lg:w-[90px]' : 'lg:w-[250px]',
+          'transition-transform duration-200 ease-in-out lg:sticky lg:top-4 lg:self-start lg:translate-x-0',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden lg:flex absolute right-0 translate-x-1/2 top-20 z-20 h-9 w-9 items-center justify-center rounded-full border-2 border-lime-300/45 bg-[#0d1117] text-lime-300 shadow-[0_8px_18px_rgba(0,0,0,0.45)] ring-2 ring-black/40 hover:bg-[#151b24] hover:text-lime-200 hover:border-lime-300/70 transition-colors"
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </button>
+
         {/* Brand */}
-        <div className="flex h-14 items-center justify-between px-4 border-b border-border shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-              <Linkedin className="h-4 w-4 text-primary-foreground" />
+        <div className={cn('flex h-16 items-center border-b border-white/10 shrink-0', isCollapsed ? 'justify-center px-2' : 'justify-between px-5')}>
+          <button
+            className={cn('flex items-center', isCollapsed ? 'justify-center' : 'gap-3')}
+            onClick={() => { navigate('/'); setIsOpen(false); }}
+            aria-label="Go to Dashboard"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/10 text-lime-300 shadow-sm shrink-0">
+              <Linkedin className="h-5 w-5" />
             </div>
-            <span className="text-sm font-semibold text-foreground">LinkedInFlow</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="lg:hidden h-7 w-7 p-0"
+            {!isCollapsed && (
+              <div className="text-left leading-tight">
+                <span className="block text-sm font-semibold text-white">LinkedInFlow</span>
+                <span className="block text-[11px] text-white/55">Control center</span>
+              </div>
+            )}
+          </button>
+
+          <button
+            className="lg:hidden h-8 w-8 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted/60 hover:text-foreground"
             onClick={() => setIsOpen(false)}
+            aria-label="Close navigation menu"
           >
             <X className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
+        <nav className={cn('flex-1 overflow-hidden pt-4 pb-3', isCollapsed ? 'px-2 space-y-4' : 'px-4 space-y-5')}>
           {navSections.map((section) => (
             <div key={section.label}>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 mb-1.5">
-                {section.label}
-              </p>
-              <div className="space-y-0.5">
+              {!isCollapsed && (
+                <p className="section-label mb-2 px-2 text-white/45">
+                  {section.label}
+                </p>
+              )}
+              <div className={cn(isCollapsed ? 'space-y-2' : 'space-y-1')}>
                 {section.items.map((item) => {
-                  const isActive = location.pathname === item.href;
+                  const itemPath = item.href.split('?')[0];
+                  const isActive = location.pathname === itemPath;
+                  const badge    = badgeFor(item.href);
                   return (
                     <Link
                       key={item.href}
                       to={item.href}
                       onClick={() => setIsOpen(false)}
                       className={cn(
-                        'flex items-center justify-between rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        'sidebar-item',
+                        isCollapsed && 'mx-auto h-10 w-10 justify-center rounded-full !px-0',
+                        isActive && 'active',
                       )}
+                      title={item.title}
+                      aria-current={isActive ? 'page' : undefined}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        <span>{item.title}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {'badge' in item && item.badge ? (
-                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-semibold px-1">
-                            {item.badge}
-                          </span>
-                        ) : null}
-                        {isActive && <ChevronRight className="h-3.5 w-3.5 opacity-70" />}
-                      </div>
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!isCollapsed && <span className="flex-1">{item.title}</span>}
+                      {badge !== null && !isCollapsed && (
+                        <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-lime-300/20 text-lime-300 text-[10px] font-semibold px-1 leading-none">
+                          {badge}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -133,25 +167,27 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           ))}
         </nav>
 
-        {/* User + Logout */}
-        <div className="shrink-0 border-t border-border p-3 space-y-1">
-          <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-md">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-xs font-semibold text-primary">
-                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-              </span>
+        {/* Account */}
+        <div className={cn('shrink-0 border-t border-white/10 space-y-2', isCollapsed ? 'p-2' : 'p-4')}>
+          <div className={cn('flex rounded-2xl border border-white/10 bg-white/5', isCollapsed ? 'items-center justify-center px-2 py-3' : 'items-center gap-3 px-3 py-3')}>
+            <div className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-[11px] font-bold text-lime-300 ring-2 ring-lime-300/30">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">{user?.name || 'User'}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{user?.email || ''}</p>
-            </div>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
+                <p className="text-[11px] text-white/55 truncate">{user?.email || ''}</p>
+              </div>
+            )}
           </div>
+
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className={cn('sidebar-item w-full', isCollapsed ? 'justify-center px-2' : 'justify-start')}
+            title="Sign out"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            <span>Sign out</span>
+            {!isCollapsed && <span>Sign out</span>}
           </button>
         </div>
       </aside>

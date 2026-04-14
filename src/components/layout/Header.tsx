@@ -1,9 +1,39 @@
-import { Menu } from 'lucide-react';
+import { Bell, CalendarDays, Menu, Search, Sparkles, Check, XCircle, Info, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+const routeTitles: Record<string, string> = {
+  '/':                 'Dashboard',
+  '/posts':            'Posts',
+  '/content-calendar': 'Planner',
+  '/create-post':      'Create Post',
+  '/analytics':        'Analytics',
+  '/linkedin-vault':   'LinkedIn Vault',
+  '/automation':       'Automation',
+  '/settings':         'Settings',
+};
+
+const topTabs = [
+  { label: 'Overview', href: '/' },
+  { label: 'Posts', href: '/posts' },
+  { label: 'Planner', href: '/content-calendar' },
+  { label: 'Analytics', href: '/analytics' },
+  { label: 'Automation', href: '/automation' },
+];
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -11,54 +41,193 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuthStore();
-  const { linkedInStatus } = useLinkedInStore();
-  const linkedInConnected = Boolean(linkedInStatus?.isConnected && !linkedInStatus?.isExpired);
+  const { linkedInStatus, notifications, markAllNotificationsRead, clearNotifications } = useLinkedInStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const connected = Boolean(linkedInStatus?.isConnected && !linkedInStatus?.isExpired);
+  const pageTitle = routeTitles[location.pathname] ?? '';
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  const notificationIcon = (type: 'success' | 'error' | 'info') => {
+    if (type === 'success') return Check;
+    if (type === 'error') return XCircle;
+    return Info;
+  };
 
   return (
-    <header className="h-14 border-b border-border bg-background shrink-0 flex items-center justify-between px-4 lg:px-6">
-      {/* Left */}
+    <header className="sticky top-0 z-30 shrink-0 border-b border-black/20 bg-[#f3f3f1]/95 px-4 py-4 backdrop-blur-lg lg:px-8">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="sm"
-          className="lg:hidden h-8 w-8 p-0"
+          className="h-10 w-10 rounded-xl p-0 lg:hidden"
           onClick={onMenuClick}
+          aria-label="Open navigation menu"
         >
           <Menu className="h-4 w-4" />
         </Button>
+
+        <div className="min-w-[180px]">
+          <span className="block text-[32px] font-semibold tracking-tight text-black leading-none">{pageTitle}</span>
+        </div>
+
+        <div className="hidden md:flex flex-1 justify-center px-2 lg:px-6">
+          <div className="relative w-full max-w-[520px]">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black/55" />
+            <Input
+              aria-label="Search"
+              placeholder="Search"
+              className="h-11 rounded-full border-2 border-black/55 bg-white pl-10 pr-4 text-sm shadow-[0_4px_0_rgba(0,0,0,0.45)]"
+            />
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative h-10 w-10 rounded-full"
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[360px] p-0">
+              <div className="flex items-center justify-between px-3 py-2.5">
+                <DropdownMenuLabel className="p-0 text-sm font-semibold">Notifications</DropdownMenuLabel>
+                {notifications.length > 0 && (
+                  <button
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={markAllNotificationsRead}
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+              <DropdownMenuSeparator />
+              {notifications.length > 0 ? (
+                <ScrollArea className="max-h-[360px]">
+                  <div className="space-y-0 p-1">
+                    {notifications.slice(0, 8).map((notification) => {
+                      const Icon = notificationIcon(notification.type);
+                      return (
+                        <DropdownMenuItem
+                          key={notification.id}
+                          className={cn(
+                            'flex items-start gap-3 rounded-xl px-3 py-3 focus:bg-muted',
+                            !notification.read && 'bg-muted/40',
+                          )}
+                        >
+                          <div className={cn(
+                            'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+                            notification.type === 'success' && 'bg-emerald-500/10 text-emerald-600',
+                            notification.type === 'error' && 'bg-rose-500/10 text-rose-600',
+                            notification.type === 'info' && 'bg-blue-500/10 text-blue-600',
+                          )}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-foreground">{notification.title}</p>
+                              {!notification.read && <span className="h-2 w-2 rounded-full bg-lime-500 shrink-0" />}
+                            </div>
+                            <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                              {notification.message}
+                            </p>
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="px-4 py-8 text-center">
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-foreground">No notifications yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Published and failed posts will appear here.</p>
+                </div>
+              )}
+              {notifications.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <button
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={clearNotifications}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Clear all
+                    </button>
+                  </div>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="hidden sm:inline-flex h-10 w-10 rounded-full"
+            onClick={() => navigate('/content-calendar')}
+            aria-label="Open calendar"
+          >
+            <CalendarDays className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden xl:inline-flex h-10 rounded-full px-4"
+            onClick={() => navigate('/create-post')}
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Create
+          </Button>
+
+          <ThemeToggle />
+
+          <div
+            role="status"
+            aria-label={connected ? 'LinkedIn account connected' : 'LinkedIn account not connected'}
+            className="hidden xl:flex items-center gap-2 rounded-full border-2 border-black/20 bg-white px-3 py-2 text-xs shadow-[0_2px_0_rgba(0,0,0,0.16)]"
+          >
+            <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', connected ? 'bg-lime-500' : 'bg-black/30')} />
+            <span className="font-medium text-black">{connected ? 'Connected' : 'Not connected'}</span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-2 rounded-full border-2 border-black/25 bg-white px-2 py-1.5 shadow-[0_2px_0_rgba(0,0,0,0.16)]">
+            <div className="h-8 w-8 rounded-full bg-black flex items-center justify-center shrink-0 text-[11px] font-bold text-white">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-3">
-        {/* LinkedIn status indicator */}
-        <div className="hidden md:flex items-center gap-1.5">
-          <div className={cn(
-            'h-2 w-2 rounded-full',
-            linkedInConnected ? 'bg-emerald-500' : 'bg-muted-foreground/40'
-          )} />
-          <span className="text-xs text-muted-foreground">
-            {linkedInConnected ? 'LinkedIn connected' : 'LinkedIn disconnected'}
-          </span>
-        </div>
-
-        <div className="h-4 w-px bg-border hidden md:block" />
-
-        <ThemeToggle />
-
-        <div className="h-4 w-px bg-border" />
-
-        {/* User avatar */}
-        <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="text-xs font-semibold text-primary">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-            </span>
-          </div>
-          <div className="hidden md:block">
-            <p className="text-sm font-medium text-foreground leading-none">{user?.name || 'User'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{user?.email || ''}</p>
-          </div>
-        </div>
+      <div className="mt-4 hidden lg:flex items-center gap-6 border-t border-black/20 pt-3">
+        {topTabs.map((tab) => {
+          const isActive = location.pathname === tab.href;
+          return (
+            <Link
+              key={tab.href}
+              to={tab.href}
+              className={cn(
+                'relative pb-2 text-[15px] font-medium text-black/55 transition-colors hover:text-black',
+                isActive && 'text-black after:absolute after:left-0 after:right-0 after:-bottom-[2px] after:h-[2px] after:rounded-full after:bg-lime-500',
+              )}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
       </div>
     </header>
   );

@@ -51,6 +51,7 @@ const persistAuthTokenFromPayload = (payload: any) => {
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -158,10 +159,19 @@ export interface Post {
   id: string;
   user_id: string;
   content: string;
-  post_type: 'text' | 'image' | 'link';
+  post_type: 'text' | 'image' | 'link' | 'video';
   link_url?: string;
+  image_url?: string;
+  image_base64?: string;
+  image_type?: string;
+  has_image?: boolean;
+  has_video?: boolean;
+  video_url?: string;
   linkedin_post_id?: string;
   status: 'draft' | 'published' | 'failed' | 'scheduled';
+  failure_reason?: string;
+  error_message?: string;
+  error?: string;
   scheduled_at?: string;
   published_at?: string;
   created_at: string;
@@ -171,22 +181,50 @@ export interface Post {
 export const postsAPI = {
   createPost: async (postData: {
     content: string;
-    post_type?: 'text' | 'image' | 'link';
+    post_type?: 'text' | 'image' | 'link' | 'video';
     link_url?: string;
+    video_url?: string;
+    video_base64?: string;
     publish_now?: boolean;
     scheduled_at?: string; // ISO string — schedule for future
     image_base64?: string;
     image_type?: string;
+    /** Pass the raw File when uploading a local image — sent as multipart/form-data */
+    image_file?: File;
+    /** Pass the raw File when uploading a local video — sent as multipart/form-data */
+    video_file?: File;
   }) => {
+    // File upload path — use multipart/form-data for binary media.
+    if (postData.image_file || postData.video_file) {
+      const form = new FormData();
+      form.append('content', postData.content);
+      form.append('post_type', postData.post_type ?? (postData.video_file ? 'video' : 'image'));
+      form.append('publish_now', String(postData.publish_now ?? false));
+      if (postData.scheduled_at) form.append('scheduled_at', postData.scheduled_at);
+      if (postData.link_url) form.append('link_url', postData.link_url);
+      if (postData.video_url) form.append('video_url', postData.video_url);
+      if (postData.image_file) form.append('image', postData.image_file, postData.image_file.name);
+      if (postData.video_file) form.append('video', postData.video_file, postData.video_file.name);
+
+      const response = await api.post('/posts', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300_000, // 5 min — allow time for large uploads
+      });
+      return response.data as { success: boolean; post: Post };
+    }
+
+    // All other post types — JSON body
     const response = await api.post('/posts', {
-      content:      postData.content,
-      post_type:    postData.post_type ?? 'text',
-      link_url:     postData.link_url,
-      publish_now:  postData.publish_now ?? false,
+      content: postData.content,
+      post_type: postData.post_type ?? 'text',
+      link_url: postData.link_url,
+      video_url: postData.video_url,
+      video_base64: postData.video_base64,
+      publish_now: postData.publish_now ?? false,
       scheduled_at: postData.scheduled_at,
       ...(postData.image_base64 ? {
         image_base64: postData.image_base64,
-        image_type:   postData.image_type,
+        image_type: postData.image_type,
       } : {}),
     });
     return response.data; // { success: true, post: Post }
@@ -220,9 +258,9 @@ export const postsAPI = {
   updatePost: async (
     id: string,
     updates: {
-      content?:      string;
-      link_url?:     string | null;
-      post_type?:    'text' | 'image' | 'link';
+      content?: string;
+      link_url?: string | null;
+      post_type?: 'text' | 'image' | 'link' | 'video';
       scheduled_at?: string | null;
     }
   ) => {
@@ -238,12 +276,12 @@ export const postsAPI = {
     const response = await api.get('/posts/import/template', {
       responseType: 'blob',
     });
-    const cd       = response.headers['content-disposition'] as string | undefined;
-    const match    = cd?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    const cd = response.headers['content-disposition'] as string | undefined;
+    const match = cd?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
     const filename = match ? match[1].replace(/['"]/g, '') : 'posts_template.xlsx';
     const url = URL.createObjectURL(response.data as Blob);
-    const a   = document.createElement('a');
-    a.href     = url;
+    const a = document.createElement('a');
+    a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
@@ -252,20 +290,62 @@ export const postsAPI = {
   },
 
   /**
-   * POST /posts/import  (application/json)
-   * Body: { filename: string, file: "<base64 string>" }
-   * Returns { imported, failed, errors: [{ row, message }] }
+   * POST /posts/import (multipart)
+   * FormData: file=<spreadsheet>, filename=<optional>
    */
-  importPosts: async (filename: string, base64: string) => {
-    const response = await api.post(
-      '/posts/import',
-      { filename, file: base64 },
-      { timeout: 60_000 },
-    );
+  importPosts: async (file: File, filename?: string) => {
+    const form = new FormData();
+    form.append('file', file, filename ?? file.name);
+    if (filename) form.append('filename', filename);
+
+    const response = await api.post('/posts/import', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
+    });
     return response.data as {
       imported: number;
-      failed:   number;
-      errors:   { row: number; message: string }[];
+      failed: number;
+      total: number;
+      posts?: Post[];
+      warnings?: { row?: number; message: string }[];
+      errors?: { row?: number; message: string }[];
+    };
+  },
+
+  /**
+   * POST /posts/import (JSON base64 fallback)
+   */
+  importPostsBase64: async (filename: string, base64: string) => {
+    const response = await api.post('/posts/import', { filename, file: base64 }, { timeout: 120_000 });
+    return response.data as {
+      imported: number;
+      failed: number;
+      total: number;
+      posts?: Post[];
+      warnings?: { row?: number; message: string }[];
+      errors?: { row?: number; message: string }[];
+    };
+  },
+
+  /**
+   * POST /posts/upload-video
+   * Supports multipart video upload; returns a persisted video URL.
+   */
+  uploadVideo: async (video: File) => {
+    const form = new FormData();
+    form.append('video', video, video.name);
+
+    const response = await api.post('/posts/upload-video', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300_000,
+    });
+
+    return response.data as {
+      success?: boolean;
+      video_url: string;
+      storage_path?: string;
+      message?: string;
+      error?: string;
     };
   },
 };

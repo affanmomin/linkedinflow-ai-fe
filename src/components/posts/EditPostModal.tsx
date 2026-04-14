@@ -26,12 +26,13 @@ import {
   FileText,
   Link as LinkIcon,
   Image as ImageIcon,
+  Play,
 } from 'lucide-react';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const editSchema = z.object({
-  content:  z.string().min(1, 'Content is required').max(3000, 'Max 3000 characters'),
+  content: z.string().min(1, 'Content is required').max(3000, 'Max 3000 characters'),
   link_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
 
@@ -56,9 +57,9 @@ function localMin(): string {
 type UpdatePayload = Parameters<typeof postsAPI.updatePost>[1];
 
 function buildPayload(
-  data:        EditFormData,
-  post:        Post,
-  saveMode:    'draft' | 'scheduled',
+  data: EditFormData,
+  post: Post,
+  saveMode: 'draft' | 'scheduled',
   scheduledAt: string,
 ): UpdatePayload {
   const payload: UpdatePayload = {};
@@ -69,11 +70,11 @@ function buildPayload(
 
   // link_url
   const newLink = data.link_url?.trim() || null;
-  const oldLink = post.link_url          || null;
+  const oldLink = post.link_url || null;
   if (newLink !== oldLink) payload.link_url = newLink;
 
-  // post_type — derived from link_url, never touch image posts
-  if (post.post_type !== 'image') {
+  // post_type — derived from link_url only for text/link posts; preserve media posts.
+  if (post.post_type !== 'image' && post.post_type !== 'video') {
     const newType = newLink ? 'link' : 'text';
     if (newType !== post.post_type) payload.post_type = newType;
   }
@@ -97,9 +98,10 @@ function buildPayload(
 
 function PostTypeBadge({ type }: { type: Post['post_type'] }) {
   const map = {
-    text:  { icon: FileText,  label: 'Text',  cls: 'bg-muted text-muted-foreground border-border' },
-    link:  { icon: LinkIcon,  label: 'Link',  cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800' },
+    text: { icon: FileText, label: 'Text', cls: 'bg-muted text-muted-foreground border-border' },
+    link: { icon: LinkIcon, label: 'Link', cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800' },
     image: { icon: ImageIcon, label: 'Image', cls: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-800' },
+    video: { icon: Play, label: 'Video', cls: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800' },
   } as const;
   const { icon: Icon, label, cls } = map[type] ?? map.text;
   return (
@@ -113,15 +115,15 @@ function PostTypeBadge({ type }: { type: Post['post_type'] }) {
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 interface EditPostModalProps {
-  post:         Post | null;
-  open:         boolean;
+  post: Post | null;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved:      (updated: Post) => void;
+  onSaved: (updated: Post) => void;
 }
 
 export function EditPostModal({ post, open, onOpenChange, onSaved }: EditPostModalProps) {
-  const [isSaving,    setIsSaving]    = useState(false);
-  const [saveMode,    setSaveMode]    = useState<'draft' | 'scheduled'>('draft');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMode, setSaveMode] = useState<'draft' | 'scheduled'>('draft');
   const [scheduledAt, setScheduledAt] = useState('');
   const [scheduleErr, setScheduleErr] = useState('');
 
@@ -133,12 +135,18 @@ export function EditPostModal({ post, open, onOpenChange, onSaved }: EditPostMod
     formState: { errors },
   } = useForm<EditFormData>({ resolver: zodResolver(editSchema) });
 
-  const content  = watch('content') ?? '';
-  const linkUrl  = watch('link_url') ?? '';
+  const content = watch('content') ?? '';
+  const linkUrl = watch('link_url') ?? '';
 
   // Derive the live post_type so the badge updates as the user types
   const livePostType: Post['post_type'] =
-    post?.post_type === 'image' ? 'image' : linkUrl.trim() ? 'link' : 'text';
+    post?.post_type === 'image'
+      ? 'image'
+      : post?.post_type === 'video'
+        ? 'video'
+        : linkUrl.trim()
+          ? 'link'
+          : 'text';
 
   // Populate form when post changes
   useEffect(() => {
@@ -201,8 +209,8 @@ export function EditPostModal({ post, open, onOpenChange, onSaved }: EditPostMod
 
   if (!post) return null;
 
-  const isScheduled   = post.status === 'scheduled';
-  const isImagePost   = post.post_type === 'image';
+  const isScheduled = post.status === 'scheduled';
+  const isImagePost = post.post_type === 'image';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -255,8 +263,8 @@ export function EditPostModal({ post, open, onOpenChange, onSaved }: EditPostMod
               <span className={cn(
                 'text-xs',
                 content.length > 2900 ? 'text-destructive' :
-                content.length > 2800 ? 'text-amber-600 dark:text-amber-400' :
-                'text-muted-foreground',
+                  content.length > 2800 ? 'text-amber-600 dark:text-amber-400' :
+                    'text-muted-foreground',
               )}>
                 {content.length} / 3000
               </span>
@@ -299,7 +307,7 @@ export function EditPostModal({ post, open, onOpenChange, onSaved }: EditPostMod
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
-                  { mode: 'draft',     icon: Clock,    label: 'Draft' },
+                  { mode: 'draft', icon: Clock, label: 'Draft' },
                   { mode: 'scheduled', icon: Calendar, label: 'Schedule' },
                 ] as const
               ).map(({ mode, icon: Icon, label }) => (

@@ -36,10 +36,29 @@ type Step = 'upload' | 'preview' | 'importing' | 'results';
 
 interface ParsedRow { [col: string]: string }
 
+interface NormalizedImportRow {
+  rowNo: number;
+  content: string;
+  post_type: 'text' | 'image' | 'link' | 'video';
+  link_url: string;
+  scheduled_at: string;
+  publish_now: 'true' | 'false';
+  image_url: string;
+  video_url: string;
+}
+
+interface ClientIssue {
+  row: number;
+  message: string;
+}
+
 interface ImportResult {
   imported: number;
   failed:   number;
-  errors:   { row: number; message: string }[];
+  total:    number;
+  posts:    unknown[];
+  warnings: { row?: number; message: string }[];
+  errors:   { row?: number; message: string }[];
 }
 
 // ── File parser ───────────────────────────────────────────────────────────────
@@ -79,6 +98,149 @@ function parseSpreadsheet(file: File): Promise<{ headers: string[]; rows: Parsed
   });
 }
 
+// ── Client-side validation + normalization ──────────────────────────────────
+
+function normalizeHeader(header: string): string {
+  return header.trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function csvEscape(value: string): string {
+  const v = value ?? '';
+  if (/[",\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+  return v;
+}
+
+function parseFlexibleScheduledAt(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return '';
+
+  const numeric = Number(raw);
+  if (!Number.isNaN(numeric) && numeric > 1000 && numeric < 100000) {
+    const parsed = XLSX.SSF.parse_date_code(numeric);
+    if (parsed) {
+      const date = new Date(
+        parsed.y,
+        parsed.m - 1,
+        parsed.d,
+        parsed.H ?? 0,
+        parsed.M ?? 0,
+        Math.floor(parsed.S ?? 0),
+      );
+      if (!Number.isNaN(date.getTime())) return date.toISOString();
+    }
+  }
+
+  const direct = new Date(raw);
+  if (!Number.isNaN(direct.getTime())) return direct.toISOString();
+
+  // dd/mm/yyyy [hh:mm[:ss]] OR mm/dd/yyyy [hh:mm[:ss]]
+  const m = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) {
+    let p1 = Number(m[1]);
+    let p2 = Number(m[2]);
+    const year = Number(m[3].length === 2 ? `20${m[3]}` : m[3]);
+    const hh = Number(m[4] ?? 0);
+    const mm = Number(m[5] ?? 0);
+    const ss = Number(m[6] ?? 0);
+
+    // Prefer day-first when unambiguous.
+    const dayFirst = p1 > 12 || (p1 <= 12 && p2 <= 12);
+    const day = dayFirst ? p1 : p2;
+    const month = dayFirst ? p2 : p1;
+
+    const d = new Date(year, month - 1, day, hh, mm, ss);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+
+  return null;
+}
+
+function normalizeBoolean(value: string): 'true' | 'false' {
+  const v = value.trim().toLowerCase();
+  if (v === 'true' || v === '1' || v === 'yes' || v === 'y') return 'true';
+  return 'false';
+}
+
+function buildCanonicalImport(rows: ParsedRow[]): { normalizedRows: NormalizedImportRow[]; issues: ClientIssue[] } {
+  const issues: ClientIssue[] = [];
+  const normalizedRows: NormalizedImportRow[] = [];
+
+  rows.forEach((raw, idx) => {
+    const rowNo = idx + 2; // +2 because spreadsheet rows are 1-based and row 1 is headers
+    const map = new Map<string, string>();
+    Object.entries(raw).forEach(([k, v]) => map.set(normalizeHeader(k), String(v ?? '').trim()));
+
+    const content = map.get('content') ?? map.get('post_content') ?? map.get('text') ?? '';
+    const rawType = (map.get('post_type') ?? map.get('type') ?? '').toLowerCase();
+    const linkUrl = map.get('link_url') ?? map.get('url') ?? map.get('link') ?? '';
+    const scheduledRaw =
+      map.get('scheduled_at') ??
+      map.get('schedule_at') ??
+      map.get('publish_at') ??
+      map.get('publish_date') ??
+      '';
+    const publishNow = normalizeBoolean(map.get('publish_now') ?? 'false');
+    const imageUrl = map.get('image_url') ?? '';
+    const videoUrl = map.get('video_url') ?? '';
+
+    if (!content) {
+      issues.push({ row: rowNo, message: 'Missing required "content".' });
+      return;
+    }
+
+    const postType: NormalizedImportRow['post_type'] =
+      rawType === 'image' || rawType === 'link' || rawType === 'video' || rawType === 'text'
+        ? rawType
+        : (linkUrl ? 'link' : 'text');
+
+    if (linkUrl) {
+      try {
+        new URL(linkUrl);
+      } catch {
+        issues.push({ row: rowNo, message: 'Invalid link_url format.' });
+        return;
+      }
+    }
+
+    if (imageUrl) {
+      try {
+        new URL(imageUrl);
+      } catch {
+        issues.push({ row: rowNo, message: 'Invalid image_url format.' });
+        return;
+      }
+    }
+
+    if (videoUrl) {
+      try {
+        new URL(videoUrl);
+      } catch {
+        issues.push({ row: rowNo, message: 'Invalid video_url format.' });
+        return;
+      }
+    }
+
+    const scheduledAtIso = parseFlexibleScheduledAt(scheduledRaw);
+    if (scheduledAtIso === null) {
+      issues.push({ row: rowNo, message: 'Invalid scheduled_at format. Use a valid date/time.' });
+      return;
+    }
+
+    normalizedRows.push({
+      rowNo,
+      content,
+      post_type: postType,
+      link_url: linkUrl,
+      scheduled_at: scheduledAtIso,
+      publish_now: publishNow,
+      image_url: imageUrl,
+      video_url: videoUrl,
+    });
+  });
+
+  return { normalizedRows, issues };
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function DownloadTemplateButton() {
@@ -89,8 +251,13 @@ function DownloadTemplateButton() {
       setLoading(true);
       await postsAPI.downloadTemplate();
       toast.success('Template downloaded.');
-    } catch {
-      toast.error('Could not download template. Check your connection.');
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Could not download template. Check your connection.';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -331,6 +498,36 @@ function ResultsView({ result, onClose, onReset }: ResultsViewProps) {
         </div>
       </div>
 
+      <div className="rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+        <p className="text-xs text-muted-foreground">
+          Total rows processed: <span className="font-semibold text-foreground">{result.total}</span>
+        </p>
+      </div>
+
+      {result.warnings && result.warnings.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+            Warnings
+          </p>
+          <div className="max-h-48 overflow-auto rounded-lg border border-amber-200 dark:border-amber-800 space-y-0 divide-y divide-amber-100 dark:divide-amber-900">
+            {result.warnings.map((warn, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-2.5 px-3 py-2.5 text-sm bg-amber-50/40 dark:bg-amber-950/20"
+              >
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-[10px] px-1.5 py-0 h-4 font-mono border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+                >
+                  {warn.row ? `Row ${warn.row}` : 'Warning'}
+                </Badge>
+                <span className="text-amber-800 dark:text-amber-300 leading-snug">{warn.message}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Error list */}
       {result.errors && result.errors.length > 0 && (
         <div className="space-y-2">
@@ -347,7 +544,7 @@ function ResultsView({ result, onClose, onReset }: ResultsViewProps) {
                   variant="outline"
                   className="shrink-0 text-[10px] px-1.5 py-0 h-4 font-mono badge-error"
                 >
-                  Row {err.row}
+                  {err.row ? `Row ${err.row}` : 'Error'}
                 </Badge>
                 <span className="text-muted-foreground leading-snug">{err.message}</span>
               </div>
@@ -384,6 +581,8 @@ export function ImportModal({ open, onOpenChange, onImportDone }: ImportModalPro
   const [step,    setStep]    = useState<Step>('upload');
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows,    setRows]    = useState<ParsedRow[]>([]);
+  const [normalizedRows, setNormalizedRows] = useState<NormalizedImportRow[]>([]);
+  const [clientIssues, setClientIssues] = useState<ClientIssue[]>([]);
   const [file,    setFile]    = useState<File | null>(null);
   const [result,  setResult]  = useState<ImportResult | null>(null);
 
@@ -391,6 +590,8 @@ export function ImportModal({ open, onOpenChange, onImportDone }: ImportModalPro
     setStep('upload');
     setHeaders([]);
     setRows([]);
+    setNormalizedRows([]);
+    setClientIssues([]);
     setFile(null);
     setResult(null);
   };
@@ -401,41 +602,61 @@ export function ImportModal({ open, onOpenChange, onImportDone }: ImportModalPro
   };
 
   const handleParsed = (h: string[], r: ParsedRow[], f: File) => {
+    const { normalizedRows: validRows, issues } = buildCanonicalImport(r);
     setHeaders(h);
     setRows(r);
+    setNormalizedRows(validRows);
+    setClientIssues(issues);
     setFile(f);
     setStep('preview');
   };
 
   const handleImport = async () => {
     if (!file) return;
+    if (normalizedRows.length === 0) {
+      toast.error('No rows found to import.');
+      return;
+    }
+    if (clientIssues.length > 0) {
+      toast.error('Some rows are invalid. Please fix the highlighted issues before importing.');
+      return;
+    }
     setStep('importing');
 
     try {
-      // Read the file as a data URL, then strip the "data:...;base64," prefix
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload  = (e) => {
-          const dataUrl = e.target?.result as string;
-          const base64  = dataUrl.split(',')[1];   // everything after the comma
-          if (!base64) reject(new Error('Failed to encode file.'));
-          else resolve(base64);
-        };
-        reader.onerror = () => reject(new Error('Failed to read file.'));
-        reader.readAsDataURL(file);
-      });
+      const csvHeader = 'content,post_type,link_url,scheduled_at,publish_now,image_url,video_url';
+      const csvRows = normalizedRows.map((r) =>
+        [
+          r.content,
+          r.post_type,
+          r.link_url,
+          r.scheduled_at,
+          r.publish_now,
+          r.image_url,
+          r.video_url,
+        ].map(csvEscape).join(',')
+      );
+      const canonicalCsv = [csvHeader, ...csvRows].join('\n');
+      const canonicalFile = new File([canonicalCsv], 'posts_import.csv', { type: 'text/csv;charset=utf-8' });
 
-      const data = await postsAPI.importPosts(file.name, base64);
+      const data = await postsAPI.importPosts(canonicalFile, canonicalFile.name);
       setResult({
         imported: data.imported ?? 0,
-        failed:   data.failed   ?? 0,
-        errors:   data.errors   ?? [],
+        failed: data.failed ?? 0,
+        total: data.total ?? normalizedRows.length,
+        posts: data.posts ?? [],
+        warnings: data.warnings ?? [],
+        errors: data.errors ?? [],
       });
       setStep('results');
 
       if ((data.imported ?? 0) > 0) {
         onImportDone();
         toast.success(`${data.imported} post${data.imported === 1 ? '' : 's'} imported.`);
+      }
+
+      if ((data.warnings?.length ?? 0) > 0) {
+        toast.warning(`Import completed with ${data.warnings?.length} warning${data.warnings?.length === 1 ? '' : 's'}.`);
       }
     } catch (err: any) {
       const msg =
@@ -475,6 +696,25 @@ export function ImportModal({ open, onOpenChange, onImportDone }: ImportModalPro
                 </p>
                 <DownloadTemplateButton />
               </div>
+
+              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                  Required Bulk Import Columns
+                </p>
+                <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  <Badge variant="outline" className="text-[10px]">content (required)</Badge>
+                  <Badge variant="outline" className="text-[10px]">post_type</Badge>
+                  <Badge variant="outline" className="text-[10px]">link_url</Badge>
+                  <Badge variant="outline" className="text-[10px]">scheduled_at</Badge>
+                  <Badge variant="outline" className="text-[10px]">publish_now</Badge>
+                  <Badge variant="outline" className="text-[10px]">image_url (optional)</Badge>
+                  <Badge variant="outline" className="text-[10px]">video_url (optional)</Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Use the downloaded template for exact backend-supported columns and formats.
+                </p>
+              </div>
+
               <DropZone onParsed={handleParsed} />
             </>
           )}
@@ -492,6 +732,14 @@ export function ImportModal({ open, onOpenChange, onImportDone }: ImportModalPro
                   <Badge variant="secondary" className="text-[10px] shrink-0">
                     {rows.length} row{rows.length !== 1 ? 's' : ''}
                   </Badge>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                    {normalizedRows.length} valid
+                  </Badge>
+                  {clientIssues.length > 0 && (
+                    <Badge variant="outline" className="text-[10px] shrink-0 badge-error">
+                      {clientIssues.length} row issue{clientIssues.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
                 </div>
                 <button
                   onClick={reset}
@@ -504,13 +752,33 @@ export function ImportModal({ open, onOpenChange, onImportDone }: ImportModalPro
 
               <PreviewTable headers={headers} rows={rows} />
 
+              {clientIssues.length > 0 && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-destructive mb-1.5">
+                    Fix These Rows Before Import
+                  </p>
+                  <div className="space-y-1 max-h-36 overflow-auto">
+                    {clientIssues.slice(0, 12).map((issue, i) => (
+                      <p key={i} className="text-xs text-destructive">
+                        Row {issue.row}: {issue.message}
+                      </p>
+                    ))}
+                    {clientIssues.length > 12 && (
+                      <p className="text-xs text-destructive/80">
+                        +{clientIssues.length - 12} more issue{clientIssues.length - 12 > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-1">
                 <Button variant="outline" size="sm" onClick={reset}>
                   Cancel
                 </Button>
-                <Button size="sm" onClick={handleImport}>
+                <Button size="sm" onClick={handleImport} disabled={normalizedRows.length === 0 || clientIssues.length > 0}>
                   <Upload className="mr-1.5 h-3.5 w-3.5" />
-                  Import {rows.length} post{rows.length !== 1 ? 's' : ''}
+                  Import {normalizedRows.length} post{normalizedRows.length !== 1 ? 's' : ''}
                 </Button>
               </div>
             </>
