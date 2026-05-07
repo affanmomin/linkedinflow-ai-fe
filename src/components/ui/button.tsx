@@ -5,19 +5,19 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border-2 border-black/30',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-[#e0dfdc]',
   {
     variants: {
       variant: {
         default:
-          'bg-black text-white shadow-[0_3px_0_rgba(0,0,0,0.45)] hover:translate-y-[-1px] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)]',
+          'bg-[#0a66c2] text-white hover:bg-[#004182] shadow-[0_4px_20px_rgba(10,102,194,0.24)]',
         destructive:
-          'bg-rose-600 text-white shadow-[0_3px_0_rgba(136,19,55,0.45)] hover:translate-y-[-1px]',
+          'bg-rose-600 text-white border-rose-600 hover:bg-rose-700 shadow-[0_4px_20px_rgba(190,24,93,0.2)]',
         outline:
-          'bg-white text-black shadow-[0_2px_0_rgba(0,0,0,0.22)] hover:bg-black/5',
+          'bg-[#f3f2ee] text-[#191919] border-[#e0dfdc] hover:bg-[#eef3f8] shadow-[0_4px_20px_rgba(0,0,0,0.06)]',
         secondary:
-          'bg-lime-200 text-black shadow-[0_2px_0_rgba(0,0,0,0.25)] hover:bg-lime-300',
-        ghost: 'border-transparent text-black hover:bg-black/5',
+          'bg-[#eef3f8] text-[#0a66c2] border-[#dce6f1] hover:bg-[#dce6f1] shadow-[0_4px_20px_rgba(0,0,0,0.06)]',
+        ghost: 'border-transparent text-[#191919] hover:bg-[#eef3f8]',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {

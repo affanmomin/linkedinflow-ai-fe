@@ -5,40 +5,36 @@
 
 @layer base {
   :root {
-    /* ── Canvas ─────────────────────────────── */
-    --background: 36 15% 95%;
-    --foreground: 0 0% 5%;
+    /* LinkedIn light theme */
+    --background: 48 11% 94%;
+    --foreground: 0 0% 10%;
 
-    /* ── Surfaces ───────────────────────────── */
-    --card: 0 0% 97%;
-    --card-foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 5%;
+    --popover-foreground: 0 0% 10%;
 
-    /* ── Brand blue (LinkedIn) ──────────────── */
-    --primary: 96 62% 63%;
-    --primary-foreground: 0 0% 6%;
+    --primary: 211 90% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    /* ── Secondary & muted ──────────────────── */
-    --secondary: 0 0% 92%;
-    --secondary-foreground: 0 0% 7%;
-    --muted: 0 0% 93%;
-    --muted-foreground: 0 0% 36%;
-    --accent: 0 0% 92%;
-    --accent-foreground: 0 0% 7%;
+    --secondary: 48 11% 94%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 210 40% 95%;
+    --muted-foreground: 210 2% 53%;
+    --accent: 210 40% 95%;
+    --accent-foreground: 0 0% 10%;
 
     /* ── Semantic ───────────────────────────── */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 72% 29%;
+    --success: 142 62% 35%;
     --success-foreground: 138 76% 97%;
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 10%;
 
-    /* ── Structure ──────────────────────────── */
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 96 62% 63%;
+    --border: 45 6% 87%;
+    --input: 210 40% 98%;
+    --ring: 211 90% 40%;
     --radius: 1.15rem;
 
     /* ── Status colours ─────────────────────── */
@@ -47,64 +43,62 @@
     --status-published: 142 72% 42%;
     --status-failed:    0 84% 60%;
 
-    /* ── Sidebar (always dark) ──────────────── */
-    --sidebar-bg: 0 0% 99%;
-    --sidebar-bg-hover: 220 16% 95%;
-    --sidebar-bg-active: 220 10% 10%;
-    --sidebar-border: 220 14% 90%;
-    --sidebar-text: 220 8% 42%;
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-bg-hover: 210 40% 95%;
+    --sidebar-bg-active: 211 90% 40%;
+    --sidebar-border: 45 6% 87%;
+    --sidebar-text: 0 0% 35%;
     --sidebar-text-active: 0 0% 100%;
     --sidebar-brand: 0 0% 97%;
 
-    /* ── Shadow scale (more presence in light) ─ */
-    --shadow-xs: 0 1px 0 rgba(0,0,0,0.18);
-    --shadow-sm: 0 2px 0 rgba(0,0,0,0.22);
-    --shadow-md: 0 3px 0 rgba(0,0,0,0.26);
-    --shadow-lg: 0 5px 0 rgba(0,0,0,0.3);
-    --shadow-xl: 0 8px 0 rgba(0,0,0,0.35);
+    --shadow-xs: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-sm: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-xl: 0 4px 20px rgba(0,0,0,0.06);
   }
 
   .dark {
-    --background: 224 25% 8%;
-    --foreground: 210 40% 97%;
-    --card: 224 25% 11%;
-    --card-foreground: 210 40% 97%;
-    --popover: 224 25% 11%;
-    --popover-foreground: 210 40% 97%;
+    --background: 48 11% 94%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 201 100% 52%;
-    --primary-foreground: 224 25% 8%;
+    --primary: 211 90% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 20% 17%;
-    --secondary-foreground: 210 40% 97%;
-    --muted: 224 20% 17%;
-    --muted-foreground: 220 14% 55%;
-    --accent: 224 20% 17%;
-    --accent-foreground: 210 40% 97%;
+    --secondary: 48 11% 94%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 210 40% 95%;
+    --muted-foreground: 210 2% 53%;
+    --accent: 210 40% 95%;
+    --accent-foreground: 0 0% 10%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 97%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 224 20% 18%;
-    --input: 224 20% 18%;
-    --ring: 201 100% 52%;
+    --border: 45 6% 87%;
+    --input: 210 40% 98%;
+    --ring: 211 90% 40%;
 
-    --success: 142 72% 42%;
-    --success-foreground: 224 25% 8%;
+    --success: 142 62% 35%;
+    --success-foreground: 0 0% 100%;
 
-    --sidebar-bg: 224 25% 11%;
-    --sidebar-bg-hover: 224 20% 16%;
-    --sidebar-bg-active: 224 15% 18%;
-    --sidebar-border: 224 20% 18%;
-    --sidebar-text: 220 14% 60%;
-    --sidebar-text-active: 0 0% 98%;
-    --sidebar-brand: 224 25% 9%;
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-bg-hover: 210 40% 95%;
+    --sidebar-bg-active: 211 90% 40%;
+    --sidebar-border: 45 6% 87%;
+    --sidebar-text: 0 0% 35%;
+    --sidebar-text-active: 0 0% 100%;
+    --sidebar-brand: 0 0% 97%;
 
-    --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.28), 0 1px 2px rgba(0,0,0,0.18);
-    --shadow-md: 0 4px 8px -2px rgba(0,0,0,0.32), 0 2px 4px -1px rgba(0,0,0,0.2);
-    --shadow-lg: 0 12px 24px -4px rgba(0,0,0,0.36), 0 4px 8px -2px rgba(0,0,0,0.24);
-    --shadow-xl: 0 20px 40px -8px rgba(0,0,0,0.4), 0 8px 16px -4px rgba(0,0,0,0.28);
+    --shadow-xs: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-sm: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.06);
+    --shadow-xl: 0 4px 20px rgba(0,0,0,0.06);
   }
 }
 
@@ -115,9 +109,7 @@
 
   html {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    background:
-      radial-gradient(circle at top left, rgba(154, 230, 95, 0.55), transparent 24%),
-      linear-gradient(135deg, #1f2520 0%, #141716 52%, #060707 100%);
+    background-color: #f3f2ee;
   }
 
   body {
@@ -154,20 +146,20 @@
 
   /* ── Typography scale ──────────────────── */
   .page-title {
-    @apply text-[30px] md:text-[34px] font-bold tracking-tight text-black leading-tight;
+    @apply text-[30px] md:text-[34px] font-bold tracking-tight text-[#191919] leading-tight;
   }
 
   .page-description {
-    @apply text-[13px] md:text-sm text-black/70 mt-1 leading-relaxed;
+    @apply text-[13px] md:text-sm text-[#595959] mt-1 leading-relaxed;
   }
 
   .section-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-black/55;
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-[#86888a];
   }
 
   /* ── Cards ─────────────────────────────── */
   .card-base {
-    @apply bg-card border-2 border-black/20 rounded-[1.25rem];
+    @apply bg-card border border-border rounded-[1.25rem];
     box-shadow: var(--shadow-sm);
   }
 
@@ -181,7 +173,7 @@
 
   /* Metric / stat card — no lift on hover, info only */
   .metric-card {
-    @apply bg-card border-2 border-black/20 rounded-[1.15rem] p-5;
+    @apply bg-card border border-border rounded-[1.15rem] p-5;
     box-shadow: var(--shadow-sm);
     transition: box-shadow 0.15s ease;
   }
@@ -192,7 +184,7 @@
 
   /* ── Post card ─────────────────────────── */
   .post-card {
-    @apply relative flex items-start gap-3 rounded-[1.15rem] border-2 border-black/20 bg-card px-4 py-3.5 overflow-hidden;
+    @apply relative flex items-start gap-3 rounded-[1.15rem] border border-border bg-card px-4 py-3.5 overflow-hidden;
     box-shadow: var(--shadow-xs);
     transition: box-shadow 0.15s ease, border-color 0.15s ease;
   }
@@ -250,19 +242,19 @@
 
   /* ── Sidebar nav item ──────────────────── */
   .sidebar-item {
-    @apply flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150 cursor-pointer select-none text-white/70 border border-transparent;
+    @apply flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150 cursor-pointer select-none text-gray-500 border border-transparent;
   }
 
   .sidebar-item:hover {
-    @apply bg-white/5 text-white;
+    @apply bg-gray-200/70 text-gray-800;
   }
 
   .sidebar-item.active {
-    @apply bg-lime-300/15 text-lime-300 border border-lime-300/35 shadow-[0_0_0_1px_rgba(163,230,53,0.12)_inset];
+    @apply bg-[#0a66c2] text-white border border-[#0a66c2] shadow-[0_4px_20px_rgba(10,102,194,0.24)];
   }
 
   .dark .sidebar-item.active {
-    @apply bg-lime-300/15 text-lime-300 border border-lime-300/35 shadow-[0_0_0_1px_rgba(163,230,53,0.12)_inset];
+    @apply bg-[#0a66c2] text-white border border-[#0a66c2] shadow-[0_4px_20px_rgba(10,102,194,0.24)];
   }
 
   /* ── Dark mode card depth ──────────────── */
@@ -274,16 +266,20 @@
 
   .dashboard-shell {
     background:
-      radial-gradient(circle at top left, rgba(154, 230, 95, 0.55), transparent 22%),
-      radial-gradient(circle at bottom right, rgba(154, 230, 95, 0.18), transparent 20%),
-      linear-gradient(135deg, #1f2520 0%, #141716 52%, #060707 100%);
+      radial-gradient(circle, rgba(10, 102, 194, 0.07) 1px, transparent 1.2px),
+      radial-gradient(70% 50% at 15% 0%, rgba(10, 102, 194, 0.10), transparent 70%),
+      radial-gradient(80% 55% at 100% 100%, rgba(10, 102, 194, 0.09), transparent 72%),
+      linear-gradient(180deg, #f3f2ee 0%, #eef3f8 55%, #e9f0f8 100%);
+    background-size: 22px 22px, auto, auto, auto;
   }
 
   .dark .dashboard-shell {
     background:
-      radial-gradient(circle at top left, rgba(14, 116, 144, 0.2), transparent 36%),
-      radial-gradient(circle at bottom right, rgba(8, 47, 73, 0.32), transparent 30%),
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+      radial-gradient(circle, rgba(10, 102, 194, 0.07) 1px, transparent 1.2px),
+      radial-gradient(70% 50% at 15% 0%, rgba(10, 102, 194, 0.10), transparent 70%),
+      radial-gradient(80% 55% at 100% 100%, rgba(10, 102, 194, 0.09), transparent 72%),
+      linear-gradient(180deg, #f3f2ee 0%, #eef3f8 55%, #e9f0f8 100%);
+    background-size: 22px 22px, auto, auto, auto;
   }
 
   .dashboard-panel {
@@ -402,6 +398,30 @@
 /* ── Drag states ─────────────────────────────────────────────── */
 .dragging-over {
   @apply ring-2 ring-primary/40 bg-primary/5;
+}
+
+/* ── Landing page marquee ────────────────────────────────────── */
+@keyframes lp-marquee-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes lp-marquee-right {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+.lp-marquee-left {
+  animation: lp-marquee-left 34s linear infinite;
+}
+
+.lp-marquee-right {
+  animation: lp-marquee-right 34s linear infinite;
+}
+
+.lp-marquee-left:hover,
+.lp-marquee-right:hover {
+  animation-play-state: paused;
 }
 
 /* ── Reduced motion ──────────────────────────────────────────── */

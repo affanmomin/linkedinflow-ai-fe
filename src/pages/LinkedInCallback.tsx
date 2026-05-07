@@ -134,7 +134,7 @@ export default function LinkedInCallback() {
           Try again
         </button>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           className="px-4 py-2 rounded-md bg-muted text-muted-foreground text-sm font-medium hover:bg-muted/70 transition-colors"
         >
           Go to dashboard

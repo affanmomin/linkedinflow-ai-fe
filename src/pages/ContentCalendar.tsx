@@ -726,7 +726,7 @@ export function ContentCalendar() {
                 ))}
               </div>
 
-              <Button size="sm" onClick={() => navigate('/create-post')}>
+              <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" />
                 New post
               </Button>
@@ -766,7 +766,7 @@ export function ContentCalendar() {
                   {unscheduledDrafts.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-border p-3 text-center">
                       <p className="text-xs text-muted-foreground">No unscheduled drafts</p>
-                      <Button size="sm" variant="ghost" className="mt-2 h-7 text-xs" onClick={() => navigate('/create-post')}>
+                      <Button size="sm" variant="ghost" className="mt-2 h-7 text-xs" onClick={() => navigate('/dashboard/create-post')}>
                         <Plus className="mr-1 h-3 w-3" />Create
                       </Button>
                     </div>
@@ -859,7 +859,7 @@ export function ContentCalendar() {
                   post={selectedPost}
                   onClose={() => setSelectedPost(null)}
                   onEdit={() => setEditingPost(selectedPost)}
-                  onNavigate={() => navigate('/posts')}
+                  onNavigate={() => navigate('/dashboard/posts')}
                 />
               )}
             </AnimatePresence>

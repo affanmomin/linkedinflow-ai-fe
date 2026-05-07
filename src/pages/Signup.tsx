@@ -45,20 +45,20 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen dashboard-shell flex items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-5xl bg-[#f3f3f1] rounded-3xl border-2 border-black/60 shadow-[0_24px_90px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col md:flex-row">
+      <div className="w-full max-w-5xl bg-[#ffffff] rounded-3xl border border-[#e0dfdc] shadow-[0_4px_20px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col md:flex-row">
 
         <AuthLeftPanel tagline="Join thousands growing their network on autopilot." />
 
         {/* ── Right: form panel ── */}
-        <div className="md:w-[58%] flex flex-col px-8 py-10 sm:px-12 sm:py-12 bg-[#f3f3f1]">
+        <div className="md:w-[58%] flex flex-col px-8 py-10 sm:px-12 sm:py-12 bg-[#ffffff]">
 
           <div className="flex-1 flex flex-col justify-center">
             <div className="w-full max-w-[360px] mx-auto">
 
-              <h1 className="text-[30px] font-bold text-black leading-tight tracking-tight">
+              <h1 className="text-[30px] font-bold text-[#191919] leading-tight tracking-tight">
                 Create account
               </h1>
-              <p className="mt-1.5 mb-8 text-sm text-black/60">
+              <p className="mt-1.5 mb-8 text-sm text-[#595959]">
                 Start automating your LinkedIn presence
               </p>
 
@@ -66,7 +66,7 @@ export default function Signup() {
 
                 {/* Full name */}
                 <div className="space-y-1.5">
-                  <label htmlFor="su-name" className="block text-[13px] font-semibold text-black/80">
+                  <label htmlFor="su-name" className="block text-[13px] font-semibold text-[#374151]">
                     Full name
                   </label>
                   <input
@@ -75,7 +75,7 @@ export default function Signup() {
                     placeholder="Jane Smith"
                     autoComplete="name"
                     {...register('name')}
-                    className="w-full h-11 px-3.5 rounded-full text-sm bg-white border-2 border-black/25 text-black placeholder:text-black/45 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-300/45 transition-colors"
+                    className="w-full h-11 px-3.5 rounded-full text-sm bg-[#f8fafc] border border-[#dce6f1] text-[#191919] placeholder:text-[#86888a] focus:outline-none focus:border-[#0a66c2] focus:ring-2 focus:ring-[#0a66c2]/20 transition-colors"
                   />
                   {errors.name && (
                     <p className="text-xs text-red-500">{errors.name.message}</p>
@@ -84,7 +84,7 @@ export default function Signup() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                  <label htmlFor="su-email" className="block text-[13px] font-semibold text-black/80">
+                  <label htmlFor="su-email" className="block text-[13px] font-semibold text-[#374151]">
                     Email
                   </label>
                   <input
@@ -93,7 +93,7 @@ export default function Signup() {
                     placeholder="you@example.com"
                     autoComplete="email"
                     {...register('email')}
-                    className="w-full h-11 px-3.5 rounded-full text-sm bg-white border-2 border-black/25 text-black placeholder:text-black/45 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-300/45 transition-colors"
+                    className="w-full h-11 px-3.5 rounded-full text-sm bg-[#f8fafc] border border-[#dce6f1] text-[#191919] placeholder:text-[#86888a] focus:outline-none focus:border-[#0a66c2] focus:ring-2 focus:ring-[#0a66c2]/20 transition-colors"
                   />
                   {errors.email && (
                     <p className="text-xs text-red-500">{errors.email.message}</p>
@@ -102,7 +102,7 @@ export default function Signup() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                  <label htmlFor="su-password" className="block text-[13px] font-semibold text-black/80">
+                  <label htmlFor="su-password" className="block text-[13px] font-semibold text-[#374151]">
                     Password
                   </label>
                   <div className="relative">
@@ -112,12 +112,12 @@ export default function Signup() {
                       placeholder="Min. 6 characters"
                       autoComplete="new-password"
                       {...register('password')}
-                      className="w-full h-11 px-3.5 pr-11 rounded-full text-sm bg-white border-2 border-black/25 text-black placeholder:text-black/45 focus:outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-300/45 transition-colors"
+                      className="w-full h-11 px-3.5 pr-11 rounded-full text-sm bg-[#f8fafc] border border-[#dce6f1] text-[#191919] placeholder:text-[#86888a] focus:outline-none focus:border-[#0a66c2] focus:ring-2 focus:ring-[#0a66c2]/20 transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-black/45 hover:text-black transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#86888a] hover:text-[#191919] transition-colors"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -129,12 +129,12 @@ export default function Signup() {
                 </div>
 
                 {/* Terms note */}
-                <p className="text-[12px] text-black/55 leading-relaxed">
-                  By clicking <span className="font-medium text-black/70">Create account</span>, you
+                <p className="text-[12px] text-[#595959] leading-relaxed">
+                  By clicking <span className="font-medium text-[#374151]">Create account</span>, you
                   agree to our{' '}
-                  <Link to="#" className="text-black/75 hover:text-black hover:underline">User Agreement</Link>
+                  <Link to="#" className="text-[#0a66c2] hover:text-[#004182] hover:underline">User Agreement</Link>
                   {' '}and{' '}
-                  <Link to="#" className="text-black/75 hover:text-black hover:underline">Privacy Policy</Link>.
+                  <Link to="#" className="text-[#0a66c2] hover:text-[#004182] hover:underline">Privacy Policy</Link>.
                 </p>
 
                 {/* Buttons */}
@@ -142,18 +142,18 @@ export default function Signup() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border-2 border-black bg-black text-white hover:bg-black/90 active:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border border-[#0a66c2] bg-[#0a66c2] text-white hover:bg-[#004182] active:bg-[#004182] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <>
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
                         Creating…
                       </>
                     ) : 'Create account'}
                   </button>
                   <Link
                     to="/login"
-                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border-2 border-lime-500/45 bg-lime-100 text-black hover:bg-lime-200 active:bg-lime-300/60 transition-colors flex items-center justify-center"
+                    className="flex-1 h-11 rounded-full text-[14px] font-semibold border border-[#e0dfdc] bg-[#f3f2ee] text-[#191919] hover:bg-[#eef3f8] active:bg-[#eef3f8] transition-colors flex items-center justify-center"
                   >
                     Sign in
                   </Link>
@@ -166,7 +166,7 @@ export default function Signup() {
           {/* Footer */}
           <div className="mt-8 flex flex-wrap justify-center gap-x-3 gap-y-1">
             {footerLinks.map((item) => (
-              <Link key={item} to="#" className="text-[11px] text-black/45 hover:text-black/70 hover:underline">
+                <Link key={item} to="#" className="text-[11px] text-[#86888a] hover:text-[#595959] hover:underline">
                 {item}
               </Link>
             ))}

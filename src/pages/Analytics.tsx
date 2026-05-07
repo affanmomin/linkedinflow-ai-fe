@@ -183,7 +183,7 @@ export function Analytics() {
               </button>
             ))}
           </div>
-          <Button size="sm" onClick={() => navigate('/create-post')}>
+          <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             Create post
           </Button>
@@ -387,7 +387,7 @@ export function Analytics() {
                     <p className="text-sm font-medium">No posts yet</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Create your first post to see it here.</p>
                   </div>
-                  <Button size="sm" onClick={() => navigate('/create-post')}>
+                  <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
                     <Plus className="mr-1.5 h-3.5 w-3.5" />Create post
                   </Button>
                 </div>
@@ -445,7 +445,7 @@ export function Analytics() {
                     <p className="text-sm font-medium">No scheduled posts</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Schedule a post to see your queue.</p>
                   </div>
-                  <Button size="sm" onClick={() => navigate('/create-post')}>
+                  <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
                     <Plus className="mr-1.5 h-3.5 w-3.5" />Schedule a post
                   </Button>
                 </div>
@@ -601,7 +601,7 @@ export function Analytics() {
                 </p>
               </div>
               <div className="sm:ml-auto shrink-0">
-                <Button variant="outline" size="sm" onClick={() => navigate('/posts')}>
+                <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/posts')}>
                   View all posts
                 </Button>
               </div>

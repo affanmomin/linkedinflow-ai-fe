@@ -387,7 +387,7 @@ export function Posts() {
             <FileUp className="h-3.5 w-3.5" />
             <span className="hidden sm:inline ml-1.5">Import</span>
           </Button>
-          <Button size="sm" onClick={() => navigate('/create-post')}>
+          <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             Create post
           </Button>
@@ -415,7 +415,7 @@ export function Posts() {
       </div>
 
       {/* ── Posts list ────────────────────────────────────────────── */}
-      <Card>
+      <Card className="bg-[#f8fafc] border-[#dce6f1]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <div className="icon-container-sm">
@@ -527,7 +527,7 @@ export function Posts() {
                             ? 'Save a post as draft and it will appear here.'
                             : `No ${tab} posts yet.`}
                         action={!searchQuery
-                          ? { label: 'Create post', onClick: () => navigate('/create-post'), icon: Plus }
+                          ? { label: 'Create post', onClick: () => navigate('/dashboard/create-post'), icon: Plus }
                           : undefined}
                       />
                     ) : (

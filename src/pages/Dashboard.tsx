@@ -229,11 +229,11 @@ export function Dashboard() {
             <CalendarDays className="h-3.5 w-3.5" />
             {format(new Date(), 'MMM yyyy')} · {publishedCount + scheduledCount} active
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate('/content-calendar')}>
+          <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/content-calendar')}>
             <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
             Calendar
           </Button>
-          <Button size="sm" onClick={() => navigate('/create-post')}>
+          <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             New post
           </Button>
@@ -381,7 +381,7 @@ export function Dashboard() {
                     Recent posts
                   </CardTitle>
                   {!isLoading && posts.length > 0 && (
-                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate('/posts')}>
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate('/dashboard/posts')}>
                       Manage all
                       <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                     </Button>
@@ -439,7 +439,7 @@ export function Dashboard() {
                     })}
                     {posts.length > 8 && (
                       <div className="pt-3 text-center">
-                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate('/posts')}>
+                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate('/dashboard/posts')}>
                           View all {posts.length} posts
                           <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                         </Button>
@@ -457,7 +457,7 @@ export function Dashboard() {
                         Create your first post to start building your audience.
                       </p>
                     </div>
-                    <Button size="sm" onClick={() => navigate('/create-post')}>
+                    <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
                       <Plus className="mr-1.5 h-3.5 w-3.5" />
                       Create your first post
                     </Button>
@@ -578,12 +578,12 @@ export function Dashboard() {
               )}
 
               {!isLinkedInConnected ? (
-                <Button size="sm" className="w-full" onClick={() => navigate('/linkedin-vault')}>
+                <Button size="sm" className="w-full" onClick={() => navigate('/dashboard/linkedin-vault')}>
                   Connect LinkedIn
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
               ) : (
-                <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => navigate('/posts')}>
+                <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => navigate('/dashboard/posts')}>
                   Manage posts
                   <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                 </Button>

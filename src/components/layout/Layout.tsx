@@ -12,16 +12,16 @@ export function Layout() {
 
   return (
     <div className="h-screen overflow-hidden dashboard-shell">
-      <div className="flex h-screen w-full overflow-hidden bg-[#f3f3f1]">
+      <div className="flex h-screen w-full overflow-hidden bg-transparent">
         <Sidebar
           isOpen={sidebarOpen}
           setIsOpen={setSidebarOpen}
           isCollapsed={sidebarCollapsed}
           setIsCollapsed={setSidebarCollapsed}
         />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f3f3f1]">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
           <Header onMenuClick={() => setSidebarOpen(true)} />
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto bg-transparent">
             <div className="w-full p-4 lg:p-7">
               <Outlet />
             </div>

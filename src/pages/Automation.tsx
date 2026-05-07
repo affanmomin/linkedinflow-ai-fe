@@ -48,69 +48,65 @@ export function Automation() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="relative">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-lime-300/25 via-lime-100/20 to-lime-300/18 blur-2xl" />
-        <div className="relative rounded-2xl border border-black/15 bg-white/85 p-5 shadow-[0_10px_35px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+      <div className="rounded-2xl border border-[#e0dfdc] bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
           <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-lime-300/20 p-2 text-lime-300 shadow-[0_0_0_1px_rgba(163,230,53,0.22)_inset]">
+            <div className="rounded-lg bg-[#eef3f8] p-2 text-[#0a66c2] border border-[#dce6f1]">
               <Zap className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-black">Automation</h1>
-              <p className="text-xs font-medium text-black/70">
+              <h1 className="text-2xl font-bold text-[#191919]">Automation</h1>
+              <p className="text-xs font-medium text-[#595959]">
                 Configure automated posting behavior and scheduling.
               </p>
             </div>
           </div>
-        </div>
       </div>
 
-      <Card className="group relative overflow-hidden border-black/10 bg-white/80 text-black shadow-[0_8px_22px_rgba(0,0,0,0.1)] backdrop-blur-md transition-all duration-300 hover:bg-white/92">
-        <div className="absolute inset-0 bg-gradient-to-br from-lime-300/10 to-transparent opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
-        <CardHeader className="relative border-b border-black/10 bg-white/60 p-4">
+      <Card className="overflow-hidden border-[#e0dfdc] bg-white text-[#191919] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+        <CardHeader className="border-b border-[#e0dfdc] bg-[#f3f2ee] p-4">
           <CardTitle className="flex items-center space-x-2">
-            <div className="rounded-lg bg-lime-300/20 p-2 text-lime-300 shadow-[0_0_0_1px_rgba(163,230,53,0.22)_inset]">
+            <div className="rounded-lg bg-[#eef3f8] p-2 text-[#0a66c2] border border-[#dce6f1]">
               <Zap className="h-4 w-4" />
             </div>
             <div>
-              <span className="text-base font-bold text-black">Automation Settings</span>
-              <p className="text-xs font-normal text-black/70">Configure automated posting behavior</p>
+              <span className="text-base font-bold text-[#191919]">Automation Settings</span>
+              <p className="text-xs font-normal text-[#595959]">Configure automated posting behavior</p>
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="relative pt-4">
+        <CardContent className="pt-4">
           <form onSubmit={automationForm.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-black">Auto Retry Failed Posts</Label>
-                    <p className="text-sm text-black/70">Automatically retry failed posts</p>
+                    <Label className="text-[#191919]">Auto Retry Failed Posts</Label>
+                    <p className="text-sm text-[#595959]">Automatically retry failed posts</p>
                   </div>
                   <Switch {...automationForm.register('autoRetry')} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="retryAttempts" className="text-black">Retry Attempts</Label>
+                  <Label htmlFor="retryAttempts" className="text-[#374151]">Retry Attempts</Label>
                   <Input
                     id="retryAttempts"
                     type="number"
                     min="1"
                     max="5"
                     {...automationForm.register('retryAttempts', { valueAsNumber: true })}
-                    className="!border-black/20 !bg-white !text-black placeholder:!text-black/45"
+                    className="!border-[#dce6f1] !bg-[#f8fafc] !text-[#191919] placeholder:!text-[#86888a]"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="delayBetweenPosts" className="text-black">Delay Between Posts (minutes)</Label>
+                  <Label htmlFor="delayBetweenPosts" className="text-[#374151]">Delay Between Posts (minutes)</Label>
                   <Input
                     id="delayBetweenPosts"
                     type="number"
                     min="1"
                     max="60"
                     {...automationForm.register('delayBetweenPosts', { valueAsNumber: true })}
-                    className="!border-black/20 !bg-white !text-black placeholder:!text-black/45"
+                    className="!border-[#dce6f1] !bg-[#f8fafc] !text-[#191919] placeholder:!text-[#86888a]"
                   />
                 </div>
               </div>
@@ -118,21 +114,21 @@ export function Automation() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label className="text-black">Enable Scheduling</Label>
-                    <p className="text-sm text-black/70">Allow posts to be scheduled</p>
+                    <Label className="text-[#191919]">Enable Scheduling</Label>
+                    <p className="text-sm text-[#595959]">Allow posts to be scheduled</p>
                   </div>
                   <Switch {...automationForm.register('enableScheduling')} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="maxDailyPosts" className="text-black">Max Daily Posts</Label>
+                  <Label htmlFor="maxDailyPosts" className="text-[#374151]">Max Daily Posts</Label>
                   <Input
                     id="maxDailyPosts"
                     type="number"
                     min="1"
                     max="50"
                     {...automationForm.register('maxDailyPosts', { valueAsNumber: true })}
-                    className="!border-black/20 !bg-white !text-black placeholder:!text-black/45"
+                    className="!border-[#dce6f1] !bg-[#f8fafc] !text-[#191919] placeholder:!text-[#86888a]"
                   />
                 </div>
               </div>
@@ -141,7 +137,7 @@ export function Automation() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="group w-full sm:w-auto !border-lime-500/35 !bg-lime-100 !text-black hover:!bg-lime-200"
+              className="group w-full sm:w-auto !border-[#0a66c2] !bg-[#0a66c2] !text-white hover:!bg-[#004182]"
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">

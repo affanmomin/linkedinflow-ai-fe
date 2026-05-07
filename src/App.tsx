@@ -14,6 +14,7 @@ import { Settings } from './pages/Settings';
 import { Automation } from './pages/Automation';
 import { Posts } from './pages/Posts';
 import { ContentCalendar } from './pages/ContentCalendar';
+import { Landing } from './pages/Landing';
 import { useAuthStore } from './store/useAuthStore';
 import LinkedInCallback from './pages/LinkedInCallback';
 import Signup from './pages/Signup';
@@ -42,14 +43,20 @@ function App() {
       <Router>
         <div className="min-h-screen bg-background">
           <Routes>
+            {/* Public landing page */}
+            <Route
+              path="/"
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />}
+            />
+
             {/* Public auth routes */}
             <Route
               path="/login"
-              element={isAuthenticated ? <Navigate to="/" replace /> : <LoginForm />}
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginForm />}
             />
             <Route
               path="/signup"
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Signup />}
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />}
             />
 
             {/* LinkedIn OAuth callback — LinkedIn redirects here with ?code=&state= */}
@@ -57,7 +64,7 @@ function App() {
 
             {/* Protected app routes */}
             <Route
-              path="/"
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Layout />

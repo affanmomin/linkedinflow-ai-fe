@@ -158,12 +158,12 @@ export function CityIllustration() {
 export function BrandMark() {
   return (
     <svg viewBox="0 0 36 36" fill="none" className="w-9 h-9 flex-shrink-0" aria-hidden="true">
-      <rect width="36" height="36" rx="8" fill="#0a0a0a" />
-      <circle cx="12" cy="13" r="3.4" fill="#bef264" />
-      <circle cx="24" cy="13" r="3.4" fill="#bef264" />
-      <circle cx="18" cy="24" r="3.4" fill="#bef264" />
-      <line x1="12" y1="13" x2="24" y2="13" stroke="#bef264" strokeWidth="1.7" strokeLinecap="round" />
-      <line x1="18" y1="13" x2="18" y2="24" stroke="#bef264" strokeWidth="1.7" strokeLinecap="round" />
+      <rect width="36" height="36" rx="8" fill="#0a66c2" />
+      <circle cx="12" cy="13" r="3.4" fill="#ffffff" />
+      <circle cx="24" cy="13" r="3.4" fill="#ffffff" />
+      <circle cx="18" cy="24" r="3.4" fill="#ffffff" />
+      <line x1="12" y1="13" x2="24" y2="13" stroke="#ffffff" strokeWidth="1.7" strokeLinecap="round" />
+      <line x1="18" y1="13" x2="18" y2="24" stroke="#ffffff" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -176,19 +176,19 @@ interface AuthLeftPanelProps {
 
 export function AuthLeftPanel({ tagline = 'Grow your professional presence — effortlessly.' }: AuthLeftPanelProps) {
   return (
-    <div className="md:w-[42%] bg-[#050607] flex flex-col overflow-hidden border-r border-white/10">
+    <div className="md:w-[42%] bg-[#eef3f8] flex flex-col overflow-hidden border-r border-[#dce6f1]">
       <div className="px-7 pt-7 pb-3 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <BrandMark />
-          <span className="text-[17px] font-bold text-white tracking-tight select-none">
+          <span className="text-[17px] font-bold text-[#191919] tracking-tight select-none">
             LinkedInFlow
           </span>
         </div>
-        <p className="mt-3 text-[13px] text-white/65 leading-relaxed max-w-[210px]">
+        <p className="mt-3 text-[13px] text-[#595959] leading-relaxed max-w-[210px]">
           {tagline}
         </p>
       </div>
-      <div className="flex-1 min-h-[200px] overflow-hidden opacity-70 saturate-0 contrast-125">
+      <div className="flex-1 min-h-[200px] overflow-hidden opacity-90">
         <CityIllustration />
       </div>
     </div>

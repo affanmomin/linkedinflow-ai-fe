@@ -222,7 +222,7 @@ export function CreatePost() {
                 Connect your LinkedIn account to publish posts directly.
               </p>
             </div>
-            <Button size="sm" variant="outline" onClick={() => navigate('/linkedin-vault')}
+            <Button size="sm" variant="outline" onClick={() => navigate('/dashboard/linkedin-vault')}
               className="border-amber-300 dark:border-amber-700 shrink-0">
               Connect
             </Button>
@@ -407,7 +407,7 @@ export function CreatePost() {
                       </div>
                     ) : (
                       <div className="space-y-1.5">
-                        <div className="relative rounded-lg overflow-hidden border border-border bg-black">
+                        <div className="relative rounded-lg overflow-hidden border border-border bg-[#eef3f8]">
                           <video
                             src={videoObjectUrl!}
                             controls
