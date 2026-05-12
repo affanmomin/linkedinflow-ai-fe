@@ -161,12 +161,12 @@ export function DataManagement() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/30">
-      <div className="space-y-6 p-4">
+      <div className="space-y-3 p-4">
         {/* Enhanced Header */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-emerald-600/10 rounded-2xl blur-2xl"></div>
           <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 rounded-xl p-5 shadow-lg">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-md">
@@ -208,7 +208,7 @@ export function DataManagement() {
         </div>
 
         {/* Enhanced Setup Instructions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {/* Preparation Steps */}
           <Card className="group relative overflow-hidden bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border border-white/20 dark:border-slate-800/50 hover:shadow-lg transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30 opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
@@ -326,7 +326,7 @@ export function DataManagement() {
                 </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="relative pt-4 space-y-4">
+            <CardContent className="relative pt-4 space-y-2">
               <div className="flex items-center justify-between">
                 <Badge 
                   variant={
@@ -358,9 +358,9 @@ export function DataManagement() {
               </div>
               
               {sheetConnection.status === 'connected' && (
-                <div className="flex items-center gap-2 p-3 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50 rounded-lg border border-emerald-200/50 dark:border-emerald-800/50">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Active Connection</span>
+                <div className="flex items-center gap-2 p-3 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 rounded-lg border border-green-200/50 dark:border-green-800/50">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-sm font-semibold text-green-700 dark:text-green-400">Active Connection</span>
                   {sheetConnection.lastSync && (
                     <span className="text-xs text-slate-600 dark:text-slate-400 ml-auto font-medium">
                       Last synced: {new Date(sheetConnection.lastSync).toLocaleString()}
@@ -386,10 +386,10 @@ export function DataManagement() {
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative p-4 space-y-4">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <CardContent className="relative p-4 space-y-2">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
               {/* Connection Fields */}
-              <div className="grid gap-4">
+              <div className="grid gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="spreadsheetId" className="text-sm font-semibold flex items-center gap-2 text-slate-700 dark:text-slate-300">
                     <FileSpreadsheet className="h-3 w-3 text-blue-500" />

@@ -5,16 +5,16 @@ import {
   LogOut,
   X,
   Linkedin,
-  Share2,
   LineChart,
   Lock,
   Sliders,
   Zap,
   FileText,
   CalendarDays,
-  FileUp,
   ChevronLeft,
   ChevronRight,
+  Lightbulb,
+  Sparkles,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
@@ -30,11 +30,12 @@ const navSections = [
   {
     label: 'Workspace',
     items: [
-      { title: 'Dashboard',   href: '/dashboard',                   icon: LayoutDashboard },
-      { title: 'Posts',       href: '/dashboard/posts',             icon: FileText        },
-      { title: 'Import Posts',href: '/dashboard/posts?import=1',    icon: FileUp          },
-      { title: 'Planner',     href: '/dashboard/content-calendar',  icon: CalendarDays    },
-      { title: 'Create Post', href: '/dashboard/create-post',       icon: Share2          },
+      { title: 'Dashboard',    href: '/dashboard',                  icon: LayoutDashboard },
+      { title: 'Posts',        href: '/dashboard/posts',            icon: FileText        },
+      { title: 'Planner',      href: '/dashboard/content-calendar', icon: CalendarDays    },
+      { title: 'Ideas',        href: '/dashboard/ideas',            icon: Lightbulb       },
+      { title: 'AI Interview', href: '/dashboard/ai-interview',     icon: Sparkles        },
+      { title: 'Weekly',       href: '/dashboard/weekly',           icon: CalendarDays    },
     ],
   },
   {
@@ -57,16 +58,12 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: Side
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user }          = useAuthStore();
-  const { posts } = useLinkedInStore();
+  const { posts, linkedInStatus } = useLinkedInStore();
 
   const draftCount     = posts.filter(p => p.status === 'draft').length;
   const scheduledCount = posts.filter(p => p.status === 'scheduled').length;
 
-  const badgeFor = (href: string) => {
-    if (href === '/posts' && draftCount + scheduledCount > 0)
-      return draftCount + scheduledCount;
-    return null;
-  };
+  const isLinkedInConnected = Boolean(linkedInStatus?.isConnected && !linkedInStatus?.isExpired);
 
   return (
     <>
@@ -82,8 +79,8 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: Side
       <aside
         className={cn(
           'fixed left-0 top-0 z-50 h-full w-[280px] flex flex-col overflow-hidden lg:overflow-visible',
-          'border-r border-gray-200 bg-gray-100 text-gray-700',
-          'lg:m-0 lg:h-screen lg:rounded-none lg:border-r lg:border-gray-200 lg:shadow-none',
+          'border-r border-gray-400 bg-[#eef3f8] text-gray-700',
+          'lg:m-0 lg:h-screen lg:rounded-none lg:border-r lg:border-gray-400 lg:shadow-none',
           isCollapsed ? 'lg:w-[90px]' : 'lg:w-[250px]',
           'transition-transform duration-200 ease-in-out lg:sticky lg:top-0 lg:self-start lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
@@ -110,7 +107,7 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: Side
             </div>
             {!isCollapsed && (
               <div className="text-left leading-tight">
-                <span className="block text-sm font-semibold text-gray-800">LinkedInFlow</span>
+                <span className="block text-base font-bold text-gray-800">LinkedInFlow</span>
                 <span className="block text-[11px] text-gray-500">Control center</span>
               </div>
             )}
@@ -126,7 +123,7 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: Side
         </div>
 
         {/* Navigation */}
-        <nav className={cn('flex-1 overflow-hidden pt-4 pb-3', isCollapsed ? 'px-2 space-y-4' : 'px-4 space-y-5')}>
+        <nav className={cn('flex-1 overflow-y-auto pt-4 pb-3', isCollapsed ? 'px-2 space-y-4' : 'px-4 space-y-5')}>
           {navSections.map((section) => (
             <div key={section.label}>
               {!isCollapsed && (
@@ -138,7 +135,6 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: Side
                 {section.items.map((item) => {
                   const itemPath = item.href.split('?')[0];
                   const isActive = location.pathname === itemPath;
-                  const badge    = badgeFor(item.href);
                   return (
                     <Link
                       key={item.href}
@@ -154,10 +150,27 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: Side
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       {!isCollapsed && <span className="flex-1">{item.title}</span>}
-                      {badge !== null && !isCollapsed && (
-                        <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-semibold px-1 leading-none">
-                          {badge}
+                      {item.href === '/dashboard/posts' && (draftCount > 0 || scheduledCount > 0) && !isCollapsed && (
+                        <span className="ml-auto flex gap-0.5">
+                          {draftCount > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                              {draftCount}
+                            </span>
+                          )}
+                          {scheduledCount > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold text-[#0a66c2] border border-blue-200">
+                              {scheduledCount}
+                            </span>
+                          )}
                         </span>
+                      )}
+                      {item.href === '/dashboard/linkedin-vault' && !isCollapsed && (
+                        <span
+                          className={cn(
+                            'ml-auto h-2 w-2 rounded-full shrink-0',
+                            isLinkedInConnected ? 'bg-green-500' : 'bg-amber-400',
+                          )}
+                        />
                       )}
                     </Link>
                   );

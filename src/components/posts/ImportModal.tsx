@@ -26,8 +26,8 @@ import {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MAX_ROWS   = 50;
-const MAX_BYTES  = 5 * 1024 * 1024; // 5 MB
+const MAX_ROWS   = 200;
+const MAX_BYTES  = 10 * 1024 * 1024; // 10 MB
 const ACCEPT_EXT = '.xlsx, .xls, .csv';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -296,7 +296,7 @@ function DropZone({ onParsed }: DropZoneProps) {
       if (rejected.length > 0) {
         const code = rejected[0].errors[0]?.code;
         if (code === 'file-too-large') {
-          setError(`File is too large. Maximum size is 5 MB.`);
+          setError(`File is too large. Maximum size is 10 MB.`);
         } else {
           setError('Invalid file type. Please upload an .xlsx, .xls, or .csv file.');
         }
@@ -370,7 +370,7 @@ function DropZone({ onParsed }: DropZoneProps) {
                 {parsing ? 'Parsing file…' : 'Drag & drop a file, or click to browse'}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Accepts {ACCEPT_EXT} · Max {MAX_ROWS} rows · Max 5 MB
+                Accepts {ACCEPT_EXT} · Max {MAX_ROWS} rows · Max 10 MB
               </p>
             </div>
           </>
@@ -395,16 +395,24 @@ interface PreviewTableProps {
 }
 
 function PreviewTable({ headers, rows }: PreviewTableProps) {
+  const getColWidth = (header: string): string => {
+    const h = header.toLowerCase();
+    if (h === 'content' || h === 'post_content' || h === 'text') return 'max-w-[200px]';
+    if (h === 'image_url' || h === 'video_url' || h === 'link_url' || h === 'url' || h === 'link' || h === 'image' || h === 'video') return 'max-w-[140px]';
+    if (h === 'scheduled_at' || h === 'schedule_at' || h === 'publish_at' || h === 'publish_date') return 'max-w-[100px]';
+    return 'max-w-[80px]';
+  };
+
   return (
-    <div className="overflow-auto rounded-lg border border-border max-h-64">
-      <table className="w-full min-w-max text-xs">
+    <div className="overflow-x-auto overflow-y-auto rounded-lg border border-border max-h-64">
+      <table className="w-full text-xs">
         <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
           <tr>
-            <th className="px-3 py-2 text-left font-semibold text-muted-foreground w-12">#</th>
+            <th className="px-2 py-2 text-left font-semibold text-muted-foreground w-8">#</th>
             {headers.map((h) => (
               <th
                 key={h}
-                className="px-3 py-2 text-left font-semibold text-muted-foreground whitespace-nowrap"
+                className="px-2 py-2 text-left font-semibold text-muted-foreground whitespace-nowrap text-[10px]"
               >
                 {h}
               </th>
@@ -420,11 +428,11 @@ function PreviewTable({ headers, rows }: PreviewTableProps) {
                 i % 2 === 0 ? 'bg-background' : 'bg-muted/20'
               )}
             >
-              <td className="px-3 py-2 text-muted-foreground font-mono">{i + 1}</td>
+              <td className="px-2 py-2 text-muted-foreground font-mono text-[10px]">{i + 1}</td>
               {headers.map((h) => (
                 <td
                   key={h}
-                  className="px-3 py-2 text-foreground max-w-[220px] truncate"
+                  className={cn('px-2 py-2 text-foreground truncate', getColWidth(h))}
                   title={row[h]}
                 >
                   {row[h] || <span className="text-muted-foreground/50 italic">—</span>}
@@ -453,13 +461,13 @@ function ResultsView({ result, onClose, onReset }: ResultsViewProps) {
     <div className="space-y-5">
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 px-4 py-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+        <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 px-4 py-3">
+          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
           <div>
-            <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+            <p className="text-xl font-bold text-green-700 dark:text-green-400">
               {result.imported}
             </p>
-            <p className="text-xs text-emerald-600 dark:text-emerald-500">
+            <p className="text-xs text-green-600 dark:text-green-500">
               Imported successfully
             </p>
           </div>
@@ -468,20 +476,20 @@ function ResultsView({ result, onClose, onReset }: ResultsViewProps) {
         <div className={cn(
           'flex items-center gap-3 rounded-lg border px-4 py-3',
           result.failed > 0
-            ? 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30'
+            ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30'
             : 'border-border bg-muted/30'
         )}>
           <XCircle className={cn(
             'h-5 w-5 shrink-0',
             result.failed > 0
-              ? 'text-rose-600 dark:text-rose-400'
+              ? 'text-red-600 dark:text-red-400'
               : 'text-muted-foreground'
           )} />
           <div>
             <p className={cn(
               'text-xl font-bold',
               result.failed > 0
-                ? 'text-rose-700 dark:text-rose-400'
+                ? 'text-red-700 dark:text-red-400'
                 : 'text-muted-foreground'
             )}>
               {result.failed}
@@ -489,7 +497,7 @@ function ResultsView({ result, onClose, onReset }: ResultsViewProps) {
             <p className={cn(
               'text-xs',
               result.failed > 0
-                ? 'text-rose-600 dark:text-rose-500'
+                ? 'text-red-600 dark:text-red-500'
                 : 'text-muted-foreground'
             )}>
               Failed

@@ -34,7 +34,7 @@ export function LoginForm() {
       const result = await authAPI.login(data.email, data.password);
       setUser(result.user);
       toast.success('Welcome back!');
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || error.message || 'Login failed. Please try again.'

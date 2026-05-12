@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import {
-  MessageSquare,
   Image as ImageIcon,
   Send,
   Eye,
@@ -24,14 +23,22 @@ import {
   Link as LinkIcon,
   Video,
   FileText,
+  ListOrdered,
+  BookMarked,
+  Trash2,
 } from 'lucide-react';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
 import { postsAPI } from '@/lib/api';
+import { format } from 'date-fns';
+import { loadQueueSettings, getNextQueueSlot } from '@/lib/queue';
 import { toast } from 'sonner';
 import { useDropzone } from 'react-dropzone';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { LinkedInPreview } from '@/components/posts/LinkedInPreview';
+import { loadTemplates, deleteTemplate, type PostTemplate } from '@/lib/templates';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PostAnalyzer } from '@/components/posts/PostAnalyzer';
 import { PageTransition } from '@/components/ui/magic/page-transition';
 
 const postSchema = z.object({
@@ -61,20 +68,72 @@ const mediaTypes: { type: MediaType; icon: React.ElementType; label: string }[] 
 ];
 
 export function CreatePost() {
+  const [searchParams] = useSearchParams();
+  const scheduledDateParam = searchParams.get('scheduled_date');
+  const prefillContent = (() => {
+    const fromSession = searchParams.get('from') === 'interview'
+      ? sessionStorage.getItem('linkedinflow_composer_prefill')
+      : null;
+    if (fromSession) {
+      sessionStorage.removeItem('linkedinflow_composer_prefill');
+      return fromSession;
+    }
+    return searchParams.get('prefill');
+  })();
+
+  const DRAFT_KEY = 'linkedinflow_draft_post';
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [showRestoreBanner, setShowRestoreBanner] = useState(false);
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
-  const [scheduledAt, setScheduledAt] = useState('');
+  const [scheduledAt, setScheduledAt] = useState<string>(
+    scheduledDateParam ? `${scheduledDateParam}T12:00` : ''
+  );
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<MediaType>('text');
   const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
   const [videoObjectUrl, setVideoObjectUrl] = useState<string | null>(null);
-  const { addPost, linkedInStatus } = useLinkedInStore();
+  const { addPost, linkedInStatus, posts } = useLinkedInStore();
   const isLinkedInConnected = Boolean(linkedInStatus?.isConnected && !linkedInStatus?.isExpired);
   const navigate = useNavigate();
+
+  const queueSettings = useMemo(() => loadQueueSettings(), []);
+  const nextQueueSlot = useMemo(
+    () => getNextQueueSlot(queueSettings, posts),
+    [queueSettings, posts]
+  );
+  const [useQueue, setUseQueue] = useState(false);
+
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [templates, setTemplates] = useState<PostTemplate[]>([]);
+
+  const openTemplates = () => {
+    setTemplates(loadTemplates());
+    setTemplatesOpen(true);
+  };
+
+  const applyTemplate = (tpl: PostTemplate) => {
+    setValue('content', tpl.content);
+    setMediaType(tpl.post_type as MediaType);
+    setTemplatesOpen(false);
+    toast.success('Template applied.');
+  };
+
+  const removeTemplate = (id: string) => {
+    deleteTemplate(id);
+    setTemplates(prev => prev.filter(t => t.id !== id));
+  };
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch, setValue, reset } =
     useForm<PostFormData>({
       resolver: zodResolver(postSchema),
-      defaultValues: { publish_now: false, useAI: false },
+      defaultValues: {
+        publish_now: false,
+        useAI: false,
+        schedule: scheduledDateParam ? true : false,
+        content: prefillContent ? decodeURIComponent(prefillContent) : '',
+      },
     });
 
   const content = watch('content');
@@ -126,6 +185,56 @@ export function CreatePost() {
     },
   });
 
+  // Check for saved draft on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.content && parsed.content.length > 0) {
+          setShowRestoreBanner(true);
+        }
+      } catch {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    }
+  }, []);
+
+  // Debounced auto-save draft
+  useEffect(() => {
+    if (!content || content.length === 0) return;
+
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+
+    draftSaveTimer.current = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ content, mediaType, savedAt: new Date().toISOString() }));
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 2000);
+    }, 1500);
+
+    return () => {
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    };
+  }, [content, mediaType]);
+
+  const restoreDraft = () => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.content) setValue('content', parsed.content);
+      if (parsed.mediaType) setMediaType(parsed.mediaType);
+    } catch {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+    setShowRestoreBanner(false);
+  };
+
+  const dismissDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setShowRestoreBanner(false);
+  };
+
   const onSubmit = async (data: PostFormData) => {
     if (data.schedule && !scheduledAt) {
       toast.error('Please pick a date and time to schedule the post.');
@@ -167,10 +276,12 @@ export function CreatePost() {
       }
 
       reset();
+      localStorage.removeItem(DRAFT_KEY);
       setUploadedImage(null);
       setImagePreview(null);
       setScheduledAt('');
       setMediaType('text');
+      setUseQueue(false);
       clearVideo();
     } catch (error: any) {
       const msg =
@@ -191,65 +302,92 @@ export function CreatePost() {
 
   return (
     <PageTransition>
-      <div className="space-y-6 animate-fade-in">
-        {/* Page header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Create Post</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Craft and publish content to LinkedIn.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn('text-xs', isLinkedInConnected ? 'badge-success' : 'bg-muted text-muted-foreground')}
-            >
-              {isLinkedInConnected
-                ? <><CheckCircle className="mr-1 h-3 w-3" />LinkedIn connected</>
-                : <><AlertCircle className="mr-1 h-3 w-3" />Not connected</>}
-            </Badge>
-          </div>
+      <div className="animate-fade-in">
+        {/* LinkedIn Connection Badge */}
+        <div className="mb-4 flex justify-end">
+          <Badge
+            variant="outline"
+            className={cn('text-xs px-3 py-1 whitespace-nowrap', isLinkedInConnected ? 'badge-success' : 'bg-muted text-muted-foreground')}
+          >
+            {isLinkedInConnected
+              ? <><CheckCircle className="mr-1.5 h-3 w-3" />Connected</>
+              : <><AlertCircle className="mr-1.5 h-3 w-3" />Not connected</>}
+          </Badge>
         </div>
 
-        {/* LinkedIn connection alert */}
+        {/* LinkedIn connection alert - Compact */}
         {!isLinkedInConnected && (
-          <div className="flex items-center gap-3 p-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+          <div className="mb-3 flex items-center gap-2 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
             <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">LinkedIn not connected</p>
-              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                Connect your LinkedIn account to publish posts directly.
-              </p>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => navigate('/dashboard/linkedin-vault')}
-              className="border-amber-300 dark:border-amber-700 shrink-0">
+            <p className="flex-1 text-xs font-medium text-amber-800 dark:text-amber-300">
+              Connect LinkedIn to publish • You can schedule now
+            </p>
+            <Button size="sm" variant="default" onClick={() => navigate('/dashboard/linkedin-vault')}
+              className="shrink-0 h-7 text-xs">
               Connect
             </Button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Form */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <div className="icon-container-sm">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                </div>
-                Post Content
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                {/* AI toggle */}
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-                  <div className="flex items-center gap-2.5">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-sm font-medium">AI Generation</p>
-                      <p className="text-xs text-muted-foreground">Generate post content with AI</p>
-                    </div>
+        {showRestoreBanner && (
+          <div className="mb-3 flex items-center gap-2 p-3 rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30">
+            <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <p className="flex-1 text-xs font-medium text-blue-800 dark:text-blue-300">
+              You have an unsaved draft. Restore it?
+            </p>
+            <button
+              type="button"
+              className="text-xs font-semibold text-blue-600 hover:underline mr-2"
+              onClick={restoreDraft}
+            >
+              Restore
+            </button>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground"
+              onClick={dismissDraft}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Post Analysis — Full Width at Top */}
+        {import.meta.env.VITE_POST_ANALYZER_ENABLED === 'true' && content && content.length >= 10 && (
+          <div className="mb-6 rounded-lg border border-border/50 bg-card p-4">
+            <PostAnalyzer
+              content={content}
+              postType={mediaType}
+              onTimeSelected={(hour, _day) => {
+                const now = new Date();
+                const targetDate = new Date(now);
+                targetDate.setHours(hour, 0, 0, 0);
+
+                // If target time has already passed today, schedule for tomorrow
+                if (targetDate <= now) {
+                  targetDate.setDate(targetDate.getDate() + 1);
+                }
+
+                const isoString = targetDate.toISOString().slice(0, 16);
+                setScheduledAt(isoString);
+                setValue('schedule', true);
+                setValue('publish_now', false);
+              }}
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Form - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <Card className="border-0 shadow-sm h-full">
+              <CardContent className="p-5">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* AI toggle - Compact */}
+                <div className="flex items-center justify-between p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <p className="text-xs font-semibold text-foreground">AI Generator</p>
                   </div>
                   <Switch
                     id="ai-toggle"
@@ -274,36 +412,61 @@ export function CreatePost() {
                   </Button>
                 )}
 
-                {/* Content textarea */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="content" className="text-sm font-medium">
-                    Content <span className="text-destructive">*</span>
-                  </Label>
+                {/* Content textarea - Compact */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="content" className="text-xs font-semibold">
+                        Your Message <span className="text-destructive">*</span>
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={openTemplates}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <BookMarked className="h-3 w-3" />
+                        Templates
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {draftSaved && (
+                        <span className="text-[11px] text-green-600 font-medium">Draft saved</span>
+                      )}
+                      <span className={cn(
+                        'text-xs',
+                        charDanger ? 'text-destructive font-bold' :
+                          charWarning ? 'text-amber-600 dark:text-amber-400 font-medium' :
+                            'text-muted-foreground'
+                      )}>
+                        {charCount}/3000
+                      </span>
+                    </div>
+                  </div>
                   <Textarea
                     id="content"
-                    placeholder="What's happening in your professional world?"
-                    className="min-h-36 resize-none"
+                    placeholder="What's on your mind? 💡"
+                    className="min-h-24 resize-none text-sm"
                     {...register('content')}
                   />
-                  <div className="flex items-center justify-between">
-                    <span className={cn(
-                      'text-xs',
-                      charDanger ? 'text-destructive' :
-                        charWarning ? 'text-amber-600 dark:text-amber-400' :
-                          'text-muted-foreground'
-                    )}>
-                      {charCount} / 3000
-                    </span>
-                    {errors.content && (
-                      <span className="text-xs text-destructive">{errors.content.message}</span>
-                    )}
+                  {/* Character count bar */}
+                  <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full transition-all duration-300',
+                        charDanger ? 'bg-destructive' :
+                          charWarning ? 'bg-amber-500' :
+                            'bg-green-500'
+                      )}
+                      style={{ width: `${Math.min(100, (charCount / 3000) * 100)}%` }}
+                    />
                   </div>
+                  {errors.content && <p className="text-xs text-destructive">{errors.content.message}</p>}
                 </div>
 
                 {/* Post type selector */}
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium">Post type</Label>
-                  <div className="grid grid-cols-4 gap-1.5">
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Post Type</Label>
+                  <div className="grid grid-cols-4 gap-2">
                     {mediaTypes.map(({ type, icon: Icon, label }) => (
                       <button
                         key={type}
@@ -314,13 +477,13 @@ export function CreatePost() {
                           if (type !== 'video') { clearVideo(); }
                         }}
                         className={cn(
-                          'flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors',
+                          'flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-xs font-semibold transition-all',
                           mediaType === type
-                            ? 'border-primary bg-primary/8 text-primary'
-                            : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60',
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
+                            : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:border-border/80',
                         )}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-5 w-5" />
                         {label}
                       </button>
                     ))}
@@ -334,7 +497,7 @@ export function CreatePost() {
                       <div
                         {...getRootProps()}
                         className={cn(
-                          'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
+                          'border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors',
                           isDragActive
                             ? 'border-primary bg-primary/5'
                             : 'border-border hover:border-primary/50 hover:bg-muted/50'
@@ -390,7 +553,7 @@ export function CreatePost() {
                       <div
                         {...getVideoRootProps()}
                         className={cn(
-                          'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
+                          'border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors',
                           isVideoDragActive
                             ? 'border-primary bg-primary/5'
                             : 'border-border hover:border-primary/50 hover:bg-muted/50',
@@ -448,75 +611,133 @@ export function CreatePost() {
                   </div>
                 )}
 
-                {/* Publish / Schedule options */}
-                <div className="space-y-2">
-                  {/* Publish now */}
-                  <div className={cn(
-                    'flex items-center justify-between p-3 rounded-lg border transition-colors',
-                    schedule ? 'opacity-40 pointer-events-none' : 'border-border bg-muted/30'
-                  )}>
-                    <div className="flex items-center gap-2.5">
-                      <Send className="h-4 w-4 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">Publish now</p>
-                        <p className="text-xs text-muted-foreground">Post to LinkedIn immediately</p>
-                      </div>
-                    </div>
-                    <Switch
-                      id="publish-toggle"
-                      checked={publishNow}
-                      onCheckedChange={(v) => { setValue('publish_now', v); if (v) setValue('schedule', false); }}
-                      disabled={!isLinkedInConnected || schedule}
-                    />
-                  </div>
+                {/* Publish / Schedule Section */}
+                <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-muted/30">
+                  <h3 className="text-sm font-semibold">Publishing Options</h3>
 
-                  {/* Schedule */}
-                  <div className={cn(
-                    'rounded-lg border transition-colors',
-                    publishNow ? 'opacity-40 pointer-events-none border-border bg-muted/30' : 'border-border bg-muted/30'
-                  )}>
-                    <div className="flex items-center justify-between p-3">
-                      <div className="flex items-center gap-2.5">
-                        <Calendar className="h-4 w-4 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium">Schedule for later</p>
-                          <p className="text-xs text-muted-foreground">Pick a date and time to post</p>
-                        </div>
-                      </div>
-                      <Switch
-                        id="schedule-toggle"
-                        checked={schedule}
-                        onCheckedChange={(v) => { setValue('schedule', v); if (v) setValue('publish_now', false); }}
-                        disabled={publishNow}
+                  <div className="space-y-2">
+                    {/* Publish now option */}
+                    <label className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer transition-all hover:bg-muted/50"
+                      style={{
+                        backgroundColor: publishNow && !useQueue ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                        borderColor: publishNow && !useQueue ? 'hsl(var(--primary))' : undefined,
+                      }}>
+                      <input
+                        type="radio"
+                        checked={publishNow && !schedule && !useQueue}
+                        onChange={() => { setValue('publish_now', true); setValue('schedule', false); setUseQueue(false); }}
+                        disabled={!isLinkedInConnected}
+                        className="h-4 w-4"
                       />
-                    </div>
-
-                    {schedule && (
-                      <div className="px-3 pb-3">
-                        <Input
-                          type="datetime-local"
-                          value={scheduledAt}
-                          min={(() => {
-                            const d = new Date(Date.now() + 60_000);
-                            return new Date(d.getTime() - d.getTimezoneOffset() * 60_000)
-                              .toISOString()
-                              .slice(0, 16);
-                          })()}
-                          onChange={(e) => setScheduledAt(e.target.value)}
-                          className="text-sm"
-                        />
+                      <Send className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Publish now</p>
+                        <p className="text-xs text-muted-foreground">Post immediately to LinkedIn</p>
                       </div>
+                    </label>
+
+                    {/* Schedule option */}
+                    <label className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer transition-all hover:bg-muted/50"
+                      style={{
+                        backgroundColor: schedule && !useQueue ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                        borderColor: schedule && !useQueue ? 'hsl(var(--primary))' : undefined,
+                      }}>
+                      <input
+                        type="radio"
+                        checked={schedule && !useQueue}
+                        onChange={() => { setValue('schedule', true); setValue('publish_now', false); setUseQueue(false); }}
+                        className="h-4 w-4"
+                      />
+                      <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Schedule for later</p>
+                        <p className="text-xs text-muted-foreground">Pick a date and time</p>
+                      </div>
+                    </label>
+
+                    {/* Save as draft option */}
+                    <label className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer transition-all hover:bg-muted/50"
+                      style={{
+                        backgroundColor: !publishNow && !schedule && !useQueue ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                        borderColor: !publishNow && !schedule && !useQueue ? 'hsl(var(--primary))' : undefined,
+                      }}>
+                      <input
+                        type="radio"
+                        checked={!publishNow && !schedule && !useQueue}
+                        onChange={() => { setValue('publish_now', false); setValue('schedule', false); setUseQueue(false); }}
+                        className="h-4 w-4"
+                      />
+                      <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Save as draft</p>
+                        <p className="text-xs text-muted-foreground">Edit later</p>
+                      </div>
+                    </label>
+
+                    {/* Queue option — only show if queue is enabled and has a next slot */}
+                    {queueSettings.enabled && nextQueueSlot && (
+                      <label
+                        className="flex items-center gap-3 p-3 rounded-lg border border-border cursor-pointer transition-all hover:bg-muted/50"
+                        style={{
+                          backgroundColor: useQueue ? 'hsl(var(--primary) / 0.1)' : 'transparent',
+                          borderColor: useQueue ? 'hsl(var(--primary))' : undefined,
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          checked={useQueue}
+                          onChange={() => {
+                            if (nextQueueSlot) {
+                              const local = new Date(nextQueueSlot.getTime() - nextQueueSlot.getTimezoneOffset() * 60000);
+                              setScheduledAt(local.toISOString().slice(0, 16));
+                              setValue('schedule', true);
+                              setValue('publish_now', false);
+                            }
+                            setUseQueue(true);
+                          }}
+                          className="h-4 w-4"
+                        />
+                        <ListOrdered className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">Add to queue</p>
+                          <p className="text-xs text-muted-foreground">
+                            Next slot: {format(nextQueueSlot, "EEE MMM d 'at' h:mm a")}
+                          </p>
+                        </div>
+                      </label>
                     )}
                   </div>
 
-                  {!isLinkedInConnected && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {/* Schedule datetime picker */}
+                  {schedule && (
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                      <Label htmlFor="scheduledAt" className="text-xs font-semibold">
+                        Pick a date and time
+                      </Label>
+                      <Input
+                        id="scheduledAt"
+                        type="datetime-local"
+                        value={scheduledAt}
+                        min={(() => {
+                          const d = new Date(Date.now() + 60_000);
+                          return new Date(d.getTime() - d.getTimezoneOffset() * 60_000)
+                            .toISOString()
+                            .slice(0, 16);
+                        })()}
+                        onChange={(e) => setScheduledAt(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {!isLinkedInConnected && publishNow && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20 rounded p-2">
                       Connect LinkedIn to publish posts. You can still schedule posts now — they'll publish once connected.
                     </p>
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
@@ -524,63 +745,134 @@ export function CreatePost() {
                     </div>
                   ) : (
                     <>
-                      {schedule
-                        ? <><Calendar className="mr-1.5 h-4 w-4" />Schedule post</>
-                        : publishNow
-                          ? <><Send className="mr-1.5 h-4 w-4" />Publish now</>
-                          : <><Clock className="mr-1.5 h-4 w-4" />Save as draft</>}
+                      {useQueue
+                        ? <><ListOrdered className="mr-2 h-5 w-5" />Add to Queue</>
+                        : schedule
+                          ? <><Calendar className="mr-2 h-5 w-5" />Schedule Post</>
+                          : publishNow
+                            ? <><Send className="mr-2 h-5 w-5" />Publish Now</>
+                            : <><Clock className="mr-2 h-5 w-5" />Save as Draft</>}
                     </>
                   )}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Preview */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <div className="icon-container-sm">
-                    <Eye className="h-3.5 w-3.5" />
-                  </div>
-                  LinkedIn Preview
-                  <span className="text-xs font-normal text-muted-foreground ml-1">Live</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {content ? (
-                  <LinkedInPreview
-                    content={content}
-                    linkUrl={mediaType === 'link' ? (linkUrl || undefined) : undefined}
-                    postType={mediaType}
-                    imagePreviewUrl={mediaType === 'image' ? (imagePreview || undefined) : undefined}
-                    videoUrl={mediaType === 'video' ? (videoObjectUrl ?? videoUrl ?? undefined) : undefined}
-                  />
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border p-8 text-center">
-                    <Eye className="h-6 w-6 text-muted-foreground mx-auto mb-2 opacity-40" />
-                    <p className="text-sm text-muted-foreground">Start typing to see your LinkedIn post preview</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
+          </div>
 
-            {/* Character count info */}
-            {content && (
-              <div className={cn(
-                'flex items-center justify-between px-4 py-2.5 rounded-lg border text-xs',
-                charDanger ? 'border-destructive/40 bg-destructive/5 text-destructive' :
-                  charWarning ? 'border-amber-300 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400' :
-                    'border-border bg-muted/30 text-muted-foreground',
-              )}>
-                <span>{charCount} characters used</span>
-                <span>{3000 - charCount} remaining</span>
-              </div>
-            )}
+          {/* Preview Column - Sticky */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6 space-y-4">
+              {/* LinkedIn Preview Card */}
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">LinkedIn Preview</p>
+                      <p className="text-xs text-muted-foreground">Real-time preview</p>
+                    </div>
+                  </div>
+
+                  {content ? (
+                    <LinkedInPreview
+                      content={content}
+                      linkUrl={mediaType === 'link' ? (linkUrl || undefined) : undefined}
+                      postType={mediaType}
+                      imagePreviewUrl={mediaType === 'image' ? (imagePreview || undefined) : undefined}
+                      videoUrl={mediaType === 'video' ? (videoObjectUrl ?? videoUrl ?? undefined) : undefined}
+                    />
+                  ) : (
+                    <div className="rounded-xl border-2 border-dashed border-border p-8 text-center bg-muted/30">
+                      <Eye className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium text-muted-foreground">Start typing to see preview</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Post Stats Card */}
+              {content && (
+                <div className="p-4 rounded-xl border border-border/50 bg-muted/30 space-y-3">
+                  <h4 className="text-xs font-semibold text-foreground">Post Stats</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-background border border-border/50">
+                      <p className="text-xs text-muted-foreground">Characters</p>
+                      <p className={cn(
+                        'text-lg font-bold',
+                        charDanger ? 'text-destructive' :
+                          charWarning ? 'text-amber-600 dark:text-amber-400' :
+                            'text-green-600 dark:text-green-400'
+                      )}>
+                        {charCount}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-background border border-border/50">
+                      <p className="text-xs text-muted-foreground">Remaining</p>
+                      <p className="text-lg font-bold text-muted-foreground">
+                        {3000 - charCount}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full transition-all duration-300',
+                        charDanger ? 'bg-destructive' :
+                          charWarning ? 'bg-amber-500' :
+                            'bg-green-500'
+                      )}
+                      style={{ width: `${Math.min(100, (charCount / 3000) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Templates dialog */}
+      <Dialog open={templatesOpen} onOpenChange={setTemplatesOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base">Saved templates</DialogTitle>
+          </DialogHeader>
+          {templates.length === 0 ? (
+            <div className="py-8 text-center space-y-2">
+              <BookMarked className="h-8 w-8 text-muted-foreground mx-auto opacity-40" />
+              <p className="text-sm text-muted-foreground">No templates saved yet.</p>
+              <p className="text-xs text-muted-foreground">Save any post as a template from the Posts page.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {templates.map(tpl => (
+                <div key={tpl.id} className="rounded-xl border border-border p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-semibold text-foreground line-clamp-1">{tpl.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => removeTemplate(tpl.id)}
+                      className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                      aria-label="Delete template"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                    {tpl.content}
+                  </p>
+                  <Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={() => applyTemplate(tpl)}>
+                    Use this template
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 }

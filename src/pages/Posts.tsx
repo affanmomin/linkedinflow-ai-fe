@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ElementType } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
+  RotateCcw,
   FileText,
   Image as ImageIcon,
   Link as LinkIcon,
@@ -27,39 +28,49 @@ import {
   Pencil,
   Search,
   X,
+  Copy,
+  BookmarkPlus,
 } from 'lucide-react';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
 import { postsAPI, type Post } from '@/lib/api';
+import { PublishLogModal } from '@/components/posts/PublishLogModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ImportModal } from '@/components/posts/ImportModal';
 import { EditPostModal } from '@/components/posts/EditPostModal';
+import { saveTemplate } from '@/lib/templates';
 
 type StatusFilter = 'all' | 'draft' | 'scheduled' | 'published' | 'failed';
+type ExtPost = Omit<Post, 'status'> & { status: Post['status'] | 'publishing' };
 
-const statusMeta = {
+const statusMeta: Record<string, { label: string; icon: ElementType; dot: string; badge: string; text: string }> = {
   published: {
     label: 'Published', icon: CheckCircle,
-    dot: 'bg-emerald-500', badge: 'badge-success',
-    text: 'text-emerald-700 dark:text-emerald-400',
+    dot: 'bg-green-500', badge: 'badge-success',
+    text: 'text-green-600',
   },
   draft: {
     label: 'Draft', icon: Clock,
-    dot: 'bg-amber-400', badge: 'badge-warning',
-    text: 'text-amber-700 dark:text-amber-400',
+    dot: 'bg-amber-500', badge: 'badge-warning',
+    text: 'text-amber-600',
   },
   scheduled: {
     label: 'Scheduled', icon: Calendar,
-    dot: 'bg-blue-500', badge: 'badge-info',
-    text: 'text-blue-700 dark:text-blue-400',
+    dot: 'bg-[#0a66c2]', badge: 'badge-info',
+    text: 'text-[#0a66c2]',
   },
   failed: {
     label: 'Failed', icon: XCircle,
-    dot: 'bg-rose-500', badge: 'badge-error',
-    text: 'text-rose-700 dark:text-rose-400',
+    dot: 'bg-red-500', badge: 'badge-error',
+    text: 'text-red-600',
   },
-} as const;
+  publishing: {
+    label: 'Publishing', icon: RefreshCw,
+    dot: 'bg-[#0a66c2]', badge: 'badge-info',
+    text: 'text-[#0a66c2]',
+  },
+};
 
 const typeIcon = {
   text:  FileText,
@@ -79,21 +90,30 @@ function PostCard({
   onDelete,
   onPublish,
   onEdit,
+  onViewLog,
+  onRetry,
+  onDuplicate,
   isSelected,
   onToggleSelect,
 }: {
-  post: Post;
+  post: ExtPost;
   onDelete: (id: string) => void;
   onPublish: (id: string) => void;
-  onEdit: (post: Post) => void;
+  onEdit: (post: ExtPost) => void;
+  onViewLog: (id: string) => void;
+  onRetry: (id: string) => void;
+  onDuplicate: (id: string) => void;
   isSelected?: boolean;
   onToggleSelect?: (id: string) => void;
 }) {
   const [deleting,   setDeleting]   = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const meta     = statusMeta[post.status];
-  const TypeIcon = typeIcon[post.post_type] ?? FileText;
-  const failureReason = post.status === 'failed' ? getFailureReason(post) : null;
+  const [retrying,   setRetrying]   = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const meta        = statusMeta[post.status] ?? statusMeta['draft'];
+  const TypeIcon    = typeIcon[post.post_type] ?? FileText;
+  const failureReason = post.status === 'failed' ? getFailureReason(post as Post) : null;
+  const isPublishing  = post.status === 'publishing';
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -118,6 +138,33 @@ function PostCard({
       toast.error(err.response?.data?.message || err.response?.data?.error || 'Failed to publish post.');
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    try {
+      await postsAPI.retryPost(post.id);
+      onRetry(post.id);
+      toast.success('Retrying post...');
+    } catch (err: any) {
+      const msg = err.response?.data?.message ?? 'Failed to retry post.';
+      toast.error(msg);
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    setDuplicating(true);
+    try {
+      const result = await postsAPI.duplicatePost(post.id);
+      onDuplicate(result.post.id);
+      toast.success('Post duplicated as draft.');
+    } catch {
+      toast.error('Failed to duplicate post.');
+    } finally {
+      setDuplicating(false);
     }
   };
 
@@ -149,7 +196,8 @@ function PostCard({
         <p className="text-[13px] text-foreground line-clamp-2 leading-relaxed">{post.content}</p>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5 text-[11px] text-muted-foreground">
           <span className={cn('flex items-center gap-1 font-medium', meta.text)}>
-            <span className={cn('h-1.5 w-1.5 rounded-full', meta.dot)} />
+            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', isPublishing ? 'hidden' : meta.dot)} />
+            {isPublishing && <RefreshCw className="h-3 w-3 animate-spin text-[#0a66c2]" />}
             {meta.label}
           </span>
           <span>·</span>
@@ -168,6 +216,20 @@ function PostCard({
             <>
               <span>·</span>
               <span>Published {format(new Date(post.published_at), 'MMM d')}</span>
+            </>
+          )}
+          {post.status === 'published' && post.linkedin_post_id && (
+            <>
+              <span>·</span>
+              <a
+                href={`https://www.linkedin.com/feed/update/${post.linkedin_post_id}/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#0a66c2] hover:underline"
+                onClick={e => e.stopPropagation()}
+              >
+                View on LinkedIn
+              </a>
             </>
           )}
           {post.link_url && (
@@ -193,6 +255,17 @@ function PostCard({
             </p>
           </div>
         )}
+
+        {post.status === 'failed' && (
+          <div className="mt-1.5">
+            <button
+              className="text-[11px] text-[#0a66c2] underline hover:no-underline"
+              onClick={() => onViewLog(post.id)}
+            >
+              View publish log
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
@@ -210,6 +283,34 @@ function PostCard({
           </Button>
         )}
 
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            navigator.clipboard.writeText(post.content);
+            toast.success('Copied to clipboard.');
+          }}
+          aria-label="Copy content"
+          title="Copy content"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          onClick={() => {
+            saveTemplate({ content: post.content, post_type: post.post_type });
+            toast.success('Saved as template.');
+          }}
+          aria-label="Save as template"
+          title="Save as template"
+        >
+          <BookmarkPlus className="h-3.5 w-3.5" />
+        </Button>
+
         {post.status === 'draft' && (
           <Button
             size="sm"
@@ -224,6 +325,34 @@ function PostCard({
               : <><Send className="h-3 w-3" />Publish</>}
           </Button>
         )}
+
+        {post.status === 'failed' && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2.5 text-xs gap-1 text-[#0a66c2] border-[#0a66c2]/30 hover:bg-[#0a66c2]/5"
+            onClick={handleRetry}
+            disabled={retrying || deleting}
+            aria-label="Retry post"
+          >
+            {retrying
+              ? <RefreshCw className="h-3 w-3 animate-spin" />
+              : <><RotateCcw className="h-3 w-3" />Retry</>}
+          </Button>
+        )}
+
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          onClick={handleDuplicate}
+          disabled={duplicating || deleting}
+          aria-label="Duplicate post"
+        >
+          {duplicating
+            ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            : <Copy className="h-3.5 w-3.5" />}
+        </Button>
 
         <Button
           size="sm"
@@ -254,13 +383,16 @@ export function Posts() {
   const [selectedIds,      setSelectedIds]       = useState<Set<string>>(new Set());
   const [isBulkDeleting,   setIsBulkDeleting]   = useState(false);
   const [isBulkPublishing, setIsBulkPublishing] = useState(false);
+  const [isPausingAll,     setIsPausingAll]     = useState(false);
+  const [logPostId,        setLogPostId]         = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const draftCount     = posts.filter(p => p.status === 'draft').length;
-  const scheduledCount = posts.filter(p => p.status === 'scheduled').length;
-  const publishedCount = posts.filter(p => p.status === 'published').length;
-  const failedCount    = posts.filter(p => p.status === 'failed').length;
+  const draftCount      = posts.filter(p => p.status === 'draft').length;
+  const scheduledCount  = posts.filter(p => p.status === 'scheduled').length;
+  const publishedCount  = posts.filter(p => p.status === 'published').length;
+  const failedCount     = posts.filter(p => p.status === 'failed').length;
+  const publishingCount = posts.filter(p => (p.status as string) === 'publishing').length;
 
   const fetchPosts = () => {
     setIsFetching(true);
@@ -273,9 +405,9 @@ export function Posts() {
 
   useEffect(() => { fetchPosts(); }, []);
 
-  // Silent background poll for scheduled posts
+  // Silent background poll for scheduled and publishing posts
   useEffect(() => {
-    const hasScheduled = posts.some(p => p.status === 'scheduled');
+    const hasScheduled = posts.some(p => p.status === 'scheduled' || (p.status as string) === 'publishing');
     if (!hasScheduled) return;
     const interval = setInterval(() => {
       postsAPI.getPosts()
@@ -305,6 +437,20 @@ export function Posts() {
     setPosts(posts.map(p =>
       p.id === id ? { ...p, status: 'published' as const, published_at: new Date().toISOString() } : p
     ));
+  };
+
+  const handleRetry = (id: string) => {
+    setPosts(posts.map(p =>
+      p.id === id ? { ...p, status: 'publishing' as unknown as Post['status'] } : p
+    ));
+  };
+
+  const handleDuplicate = (newPostId: string) => {
+    postsAPI.getPost(newPostId)
+      .then(data => setPosts([data.post, ...posts]))
+      .catch(() => {
+        postsAPI.getPosts().then(d => setPosts(d.posts ?? [])).catch(() => {});
+      });
   };
 
   const toggleSelect   = (id: string) => {
@@ -350,6 +496,26 @@ export function Posts() {
       : toast.warning(`Published ${succeeded.length} of ${ids.length} posts.`);
   };
 
+  const handlePauseAll = async () => {
+    const scheduledIds = posts.filter(p => p.status === 'scheduled').map(p => p.id);
+    if (scheduledIds.length === 0) { toast.info('No scheduled posts to pause.'); return; }
+    setIsPausingAll(true);
+    try {
+      const results = await Promise.allSettled(
+        scheduledIds.map(id => postsAPI.updatePost(id, { scheduled_at: null }))
+      );
+      const succeeded = scheduledIds.filter((_, i) => results[i].status === 'fulfilled');
+      if (succeeded.length > 0) {
+        setPosts(posts.map(p =>
+          succeeded.includes(p.id) ? { ...p, status: 'draft' as const, scheduled_at: undefined } : p
+        ));
+        toast.success(`Paused ${succeeded.length} scheduled post${succeeded.length > 1 ? 's' : ''} — moved to drafts.`);
+      }
+    } finally {
+      setIsPausingAll(false);
+    }
+  };
+
   const filtered = (status: StatusFilter) => {
     const base = status === 'all' ? posts : posts.filter(p => p.status === status);
     if (!searchQuery.trim()) return base;
@@ -358,15 +524,10 @@ export function Posts() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
 
       {/* ── Page header ──────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="page-title">Posts</h1>
-          <p className="page-description">Manage drafts, scheduled, and published posts.</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
@@ -383,6 +544,19 @@ export function Posts() {
             <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
             <span className="hidden sm:inline ml-1.5">Refresh</span>
           </Button>
+          {scheduledCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePauseAll}
+              disabled={isPausingAll}
+            >
+              {isPausingAll
+                ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                : <Clock className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline ml-1.5">Pause all</span>
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
             <FileUp className="h-3.5 w-3.5" />
             <span className="hidden sm:inline ml-1.5">Import</span>
@@ -391,14 +565,13 @@ export function Posts() {
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             Create post
           </Button>
-        </div>
       </div>
 
       {/* ── Summary stats ─────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: 'Drafts',    value: draftCount,     icon: Clock,       color: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-500/10' },
-          { label: 'Scheduled', value: scheduledCount, icon: Calendar,    color: 'text-blue-600 dark:text-blue-400',     bg: 'bg-blue-500/10' },
+          { label: 'Drafts',    value: draftCount,                      icon: Clock,       color: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-500/10' },
+          { label: 'Scheduled', value: scheduledCount + publishingCount, icon: Calendar,    color: 'text-blue-600 dark:text-blue-400',     bg: 'bg-blue-500/10' },
           { label: 'Published', value: publishedCount, icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
           { label: 'Failed',    value: failedCount,    icon: XCircle,     color: 'text-rose-600 dark:text-rose-400',     bg: 'bg-rose-500/10' },
         ].map((s) => (
@@ -408,7 +581,7 @@ export function Posts() {
             </div>
             <div>
               <p className={cn('text-xl font-bold tabular-nums', s.color)}>{s.value}</p>
-              <p className="text-[11px] text-muted-foreground font-medium">{s.label}</p>
+              <p className="text-[11px] text-muted-foreground font-medium text-black">{s.label}</p>
             </div>
           </div>
         ))}
@@ -427,7 +600,7 @@ export function Posts() {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2">
 
           {/* Search */}
           <div className="relative">
@@ -516,20 +689,53 @@ export function Posts() {
                 return (
                   <TabsContent key={tab} value={tab} className="space-y-2 mt-0">
                     {tabPosts.length === 0 ? (
-                      <EmptyState
-                        icon={MessageSquare}
-                        title={searchQuery
-                          ? 'No posts match your search'
-                          : `No ${tab === 'all' ? '' : tab + ' '}posts yet`}
-                        description={searchQuery
-                          ? 'Try a different search term.'
-                          : tab === 'draft'
-                            ? 'Save a post as draft and it will appear here.'
-                            : `No ${tab} posts yet.`}
-                        action={!searchQuery
-                          ? { label: 'Create post', onClick: () => navigate('/dashboard/create-post'), icon: Plus }
-                          : undefined}
-                      />
+                      searchQuery ? (
+                        <EmptyState
+                          icon={MessageSquare}
+                          title="No posts match your search"
+                          description="Try a different search term or clear the search."
+                        />
+                      ) : tab === 'all' ? (
+                        <EmptyState
+                          icon={MessageSquare}
+                          title="No posts yet"
+                          description="Create your first post or import from a spreadsheet to get started."
+                          action={{ label: 'Create post', onClick: () => navigate('/dashboard/create-post'), icon: Plus }}
+                        />
+                      ) : tab === 'draft' ? (
+                        <EmptyState
+                          icon={FileText}
+                          title="No drafts"
+                          description="Write a post and save it as a draft — it will appear here until you publish it."
+                          action={{ label: 'Write a draft', onClick: () => navigate('/dashboard/create-post'), icon: Plus }}
+                        />
+                      ) : tab === 'scheduled' ? (
+                        <EmptyState
+                          icon={Calendar}
+                          title="Queue is empty"
+                          description="Schedule a post to go live at the best time. Pick a future date and time when creating a post."
+                          action={{ label: 'Schedule a post', onClick: () => navigate('/dashboard/create-post'), icon: Clock }}
+                        />
+                      ) : tab === 'published' ? (
+                        <EmptyState
+                          icon={CheckCircle}
+                          title="Nothing published yet"
+                          description="Once a post is published to LinkedIn it appears here. Publish a draft or create a new post."
+                          action={{ label: 'Create post', onClick: () => navigate('/dashboard/create-post'), icon: Plus }}
+                        />
+                      ) : tab === 'failed' ? (
+                        <EmptyState
+                          icon={CheckCircle}
+                          title="All clear"
+                          description="No failed posts — everything is running smoothly."
+                        />
+                      ) : (
+                        <EmptyState
+                          icon={MessageSquare}
+                          title={`No ${tab} posts`}
+                          description="Nothing here yet."
+                        />
+                      )
                     ) : (
                       <>
                         {/* Select all / bulk bar */}
@@ -594,7 +800,10 @@ export function Posts() {
                               post={post}
                               onDelete={handleDelete}
                               onPublish={handlePublish}
-                              onEdit={p => setEditingPost(p)}
+                              onEdit={p => setEditingPost(p as Post)}
+                              onViewLog={setLogPostId}
+                              onRetry={handleRetry}
+                              onDuplicate={handleDuplicate}
                               isSelected={selectedIds.has(post.id)}
                               onToggleSelect={toggleSelect}
                             />
@@ -628,6 +837,8 @@ export function Posts() {
             .finally(() => setIsFetching(false));
         }}
       />
+
+      <PublishLogModal postId={logPostId} onClose={() => setLogPostId(null)} />
     </div>
   );
 }

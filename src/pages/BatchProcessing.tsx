@@ -155,7 +155,7 @@
 //   };
 
 //   return (
-//     <div className="space-y-6">
+//     <div className="space-y-3">
 //       {/* Header */}
 //       <div className="flex items-center justify-between">
 //         <div>
@@ -181,13 +181,13 @@
 //               </Badge>
 //             </div>
             
-//             <div className="space-y-4">
+//             <div className="space-y-2">
 //               <Progress 
 //                 value={(batchProgress.completed / batchProgress.total) * 100} 
 //                 className="w-full"
 //               />
               
-//               <div className="grid grid-cols-3 gap-4 text-center">
+//               <div className="grid grid-cols-3 gap-3 text-center">
 //                 <div>
 //                   <p className="text-2xl font-bold text-blue-600">{batchProgress.total}</p>
 //                   <p className="text-sm text-gray-600">Total</p>
@@ -208,14 +208,14 @@
 //         </Card>
 //       )}
 
-//       <Tabs defaultValue="excel" className="space-y-6">
+//       <Tabs defaultValue="excel" className="space-y-3">
 //         <TabsList className="grid w-full grid-cols-2">
 //           <TabsTrigger value="excel">Excel Upload</TabsTrigger>
 //           <TabsTrigger value="sheets">Google Sheets</TabsTrigger>
 //         </TabsList>
 
 //         {/* Excel Upload */}
-//         <TabsContent value="excel" className="space-y-6">
+//         <TabsContent value="excel" className="space-y-3">
 //           <Card>
 //             <CardHeader>
 //               <CardTitle className="flex items-center space-x-2">
@@ -224,7 +224,7 @@
 //               </CardTitle>
 //             </CardHeader>
 //             <CardContent>
-//               <div className="space-y-4">
+//               <div className="space-y-2">
 //                 {!uploadedFile ? (
 //                   <div
 //                     {...getRootProps()}
@@ -291,7 +291,7 @@
 //         </TabsContent>
 
 //         {/* Google Sheets */}
-//         <TabsContent value="sheets" className="space-y-6">
+//         <TabsContent value="sheets" className="space-y-3">
 //           <Card>
 //             <CardHeader>
 //               <CardTitle className="flex items-center space-x-2">
@@ -300,9 +300,9 @@
 //               </CardTitle>
 //             </CardHeader>
 //             <CardContent>
-//               <div className="space-y-4">
+//               <div className="space-y-2">
 //                 {sheetConnection ? (
-//                   <div className="space-y-4">
+//                   <div className="space-y-2">
 //                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
 //                       <div className="flex items-center space-x-2">
 //                         <CheckCircle className="h-5 w-5 text-green-600" />
@@ -375,7 +375,7 @@
 //             <CardTitle>Processing Results</CardTitle>
 //           </CardHeader>
 //           <CardContent>
-//             <div className="space-y-4 max-h-96 overflow-auto">
+//             <div className="space-y-2 max-h-96 overflow-auto">
 //               {results.map((result) => (
 //                 <div
 //                   key={result.id}

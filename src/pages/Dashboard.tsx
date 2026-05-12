@@ -20,6 +20,9 @@ import {
   ArrowRight,
   CalendarDays,
   FileText,
+  Linkedin,
+  Lightbulb,
+  Sparkles,
 } from 'lucide-react';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
 import { cn } from '@/lib/utils';
@@ -34,7 +37,8 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays, parseISO, isToday, isTomorrow } from 'date-fns';
+import { loadQueueSettings, getNextQueueSlot } from '@/lib/queue';
 import { motion } from 'framer-motion';
 
 // ── Metric Card ────────────────────────────────────────────────────────────────
@@ -47,22 +51,29 @@ interface MetricCardProps {
   color: string;
   bg: string;
   delay?: number;
+  onClick?: () => void;
 }
 
-function MetricCard({ title, value, sub, icon: Icon, color, bg, delay = 0 }: MetricCardProps) {
+function MetricCard({ title, value, sub, icon: Icon, color, bg, delay = 0, onClick }: MetricCardProps) {
   return (
-    <div className="metric-card space-y-3">
+    <div
+      onClick={onClick}
+      className={cn(
+        'rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow duration-200 space-y-3',
+        onClick && 'cursor-pointer hover:-translate-y-0.5 transition-transform',
+      )}
+    >
       <div className="flex items-center justify-between">
-        <span className="section-label">{title}</span>
-        <div className={cn('flex items-center justify-center w-7 h-7 rounded-md', bg)}>
-          <Icon className={cn('h-3.5 w-3.5', color)} />
+        <span className="text-xs font-semibold text-black uppercase tracking-wide">{title}</span>
+        <div className={cn('flex items-center justify-center w-8 h-8 rounded-lg', bg)}>
+          <Icon className={cn('h-4 w-4', color)} />
         </div>
       </div>
       <div>
-        <p className={cn('text-[28px] font-bold tracking-tight tabular-nums leading-none', color)}>
+        <p className={cn('text-3xl font-bold tracking-tight tabular-nums leading-tight', color)}>
           <NumberTicker value={value} delay={delay} />
         </p>
-        <p className="text-xs text-muted-foreground mt-1.5">{sub}</p>
+        <p className="text-xs text-[#86888a] mt-2">{sub}</p>
       </div>
     </div>
   );
@@ -106,6 +117,10 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ideas, setIdeas] = useState<Array<{ id: string; text: string; tag: string; capturedAt: string }>>([]);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(() =>
+    localStorage.getItem('linkedinflow_onboarding_dismissed') === '1'
+  );
 
   const isLinkedInConnected = Boolean(linkedInStatus?.isConnected && !linkedInStatus?.isExpired);
 
@@ -118,7 +133,70 @@ export function Dashboard() {
       .finally(() => setIsLoading(false));
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => {
+    if (posts.length === 0) {
+      fetchPosts();
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('linkedinflow_ideas');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setIdeas(parsed);
+      }
+    } catch {
+      // ignore malformed data
+    }
+  }, []);
+
+  const dismissOnboarding = () => {
+    localStorage.setItem('linkedinflow_onboarding_dismissed', '1');
+    setOnboardingDismissed(true);
+  };
+
+  const weeklyIdeas = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return ideas.filter(idea => new Date(idea.capturedAt).getTime() >= cutoff);
+  }, [ideas]);
+
+  const [dailyPromptDismissed, setDailyPromptDismissed] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return sessionStorage.getItem(`linkedinflow_daily_prompt_${today}`) === '1';
+  });
+
+  const queueSettings = useMemo(() => loadQueueSettings(), []);
+
+  const nextQueueSlot = useMemo(
+    () => getNextQueueSlot(queueSettings, posts),
+    [queueSettings, posts]
+  );
+
+  const slotLabel = useMemo(() => {
+    if (!nextQueueSlot) return null;
+    if (isToday(nextQueueSlot)) return `today at ${format(nextQueueSlot, 'h:mm a')}`;
+    if (isTomorrow(nextQueueSlot)) return `tomorrow at ${format(nextQueueSlot, 'h:mm a')}`;
+    return format(nextQueueSlot, "EEE MMM d 'at' h:mm a");
+  }, [nextQueueSlot]);
+
+  const showDailyPrompt = !dailyPromptDismissed && ideas.length > 0 && queueSettings.enabled && !!nextQueueSlot;
+
+  const dismissDailyPrompt = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    sessionStorage.setItem(`linkedinflow_daily_prompt_${today}`, '1');
+    setDailyPromptDismissed(true);
+  };
+
+  const onboardingSteps = [
+    { label: 'Connect your LinkedIn account', done: isLinkedInConnected, href: '/dashboard/linkedin-vault' },
+    { label: 'Capture your first idea', done: ideas.length > 0, href: '/dashboard/ideas' },
+    { label: 'Create your first post', done: posts.length > 0, href: '/dashboard/create-post' },
+  ];
+  const allOnboardingDone = onboardingSteps.every(s => s.done);
+  const showOnboarding = !onboardingDismissed && !allOnboardingDone && !isLoading;
 
   const publishedCount = posts.filter(p => p.status === 'published').length;
   const failedCount    = posts.filter(p => p.status === 'failed').length;
@@ -178,71 +256,67 @@ export function Dashboard() {
       value: posts.length,
       icon: FileText,
       sub: 'All time',
-      color: 'text-primary',
-      bg: 'bg-primary/10',
+      color: 'text-[#0a66c2]',
+      bg: 'bg-[#0a66c2]/10',
+      onClick: () => navigate('/dashboard/posts'),
     },
     {
       title: 'Published',
       value: publishedCount,
       icon: CheckCircle,
       sub: posts.length > 0 ? `${Math.round((publishedCount / posts.length) * 100)}% success rate` : 'No posts yet',
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-500/10',
+      color: 'text-green-600',
+      bg: 'bg-green-500/10',
+      onClick: () => navigate('/dashboard/posts?tab=published'),
     },
     {
       title: 'Scheduled',
       value: scheduledCount,
       icon: Calendar,
       sub: scheduledCount > 0 ? 'Queued to publish' : 'Nothing scheduled',
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-500/10',
+      color: 'text-[#0a66c2]',
+      bg: 'bg-[#0a66c2]/10',
+      onClick: () => navigate('/dashboard/posts?tab=scheduled'),
     },
     {
       title: 'Failed',
       value: failedCount,
       icon: Activity,
       sub: failedCount > 0 ? 'Needs attention' : 'All clear',
-      color: failedCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-muted-foreground',
-      bg: failedCount > 0 ? 'bg-rose-500/10' : 'bg-muted/60',
+      color: failedCount > 0 ? 'text-red-600' : 'text-[#86888a]',
+      bg: failedCount > 0 ? 'bg-red-500/10' : 'bg-[#eef3f8]',
+      onClick: () => navigate('/dashboard/posts?tab=failed'),
     },
   ];
 
-  const statusMeta = {
-    published: { dot: 'bg-emerald-500', label: 'Published', badge: 'badge-success' },
-    draft:     { dot: 'bg-amber-400',   label: 'Draft',     badge: 'badge-warning' },
-    scheduled: { dot: 'bg-blue-500',    label: 'Scheduled', badge: 'badge-info' },
-    failed:    { dot: 'bg-rose-500',    label: 'Failed',    badge: 'badge-error' },
-  } as const;
+  const statusMeta: Record<string, { dot: string; label: string; badge: string }> = {
+    published:  { dot: 'bg-green-500',  label: 'Published',  badge: 'badge-success' },
+    draft:      { dot: 'bg-amber-400',  label: 'Draft',      badge: 'badge-warning' },
+    scheduled:  { dot: 'bg-blue-500',   label: 'Scheduled',  badge: 'badge-info' },
+    failed:     { dot: 'bg-red-500',    label: 'Failed',     badge: 'badge-error' },
+    publishing: { dot: 'bg-[#0a66c2]', label: 'Publishing', badge: 'badge-info' },
+  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-3xl">
-          <p className="section-label">Overview</p>
-          <h1 className="page-title">Monitor every post, schedule, and signal in one place</h1>
-          <p className="page-description">
-            A bird’s-eye workspace for drafts, scheduling, publishing, and LinkedIn health.
-          </p>
+    <div className="space-y-3 animate-fade-in">
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className="hidden sm:flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
+          <CalendarDays className="h-3.5 w-3.5" />
+          {format(new Date(), 'MMM yyyy')} - {publishedCount + scheduledCount} active
         </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <div className="hidden sm:flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground shadow-sm">
-            <CalendarDays className="h-3.5 w-3.5" />
-            {format(new Date(), 'MMM yyyy')} · {publishedCount + scheduledCount} active
-          </div>
-          <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/content-calendar')}>
-            <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
-            Calendar
-          </Button>
-          <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New post
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={() => navigate("/dashboard/content-calendar")}>
+          <CalendarDays className="h-3.5 w-3.5 sm:mr-1.5" />
+          <span className="hidden sm:inline">Calendar</span>
+        </Button>
+        <Button size="sm" onClick={() => navigate("/dashboard/create-post")}>
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          New post
+        </Button>
       </div>
 
       {error && <PageError message={error} onRetry={fetchPosts} />}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <MetricSkeleton key={i} />)
           : metrics.map((m, i) => (
@@ -250,13 +324,76 @@ export function Dashboard() {
             ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <div className="space-y-4">
-          <Card className="dashboard-panel">
+      {!isLoading && posts.length === 0 && (
+        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center space-y-3">
+          <div className="flex items-center justify-center">
+            <div className="icon-container"><MessageSquare className="h-5 w-5" /></div>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Welcome to LinkedInFlow</p>
+            <p className="text-xs text-muted-foreground mt-1">Create your first post to get started. You can write, schedule, or bulk import posts.</p>
+          </div>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <Button size="sm" onClick={() => navigate('/dashboard/create-post')}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Create your first post
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate('/dashboard/posts?import=1')}>
+              Import from spreadsheet
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !isLinkedInConnected && (
+        <div className="rounded-xl border border-[#dce6f1] bg-gradient-to-r from-[#eef3f8] to-white p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0a66c2]/10 border border-[#0a66c2]/20">
+            <Linkedin className="h-5 w-5 text-[#0a66c2]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Connect your LinkedIn account</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Link LinkedIn to start publishing and scheduling posts directly from LinkedInFlow.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="shrink-0"
+            onClick={() => navigate('/dashboard/linkedin-vault')}
+          >
+            Connect LinkedIn
+          </Button>
+        </div>
+      )}
+
+      {showOnboarding && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-foreground">Get started</p>
+            <button onClick={dismissOnboarding} className="text-xs text-muted-foreground hover:text-foreground">Dismiss</button>
+          </div>
+          <div className="space-y-2">
+            {onboardingSteps.map((step) => (
+              <div key={step.label} className="flex items-center gap-3 cursor-pointer" onClick={() => !step.done && navigate(step.href)}>
+                <div className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                  step.done ? 'border-green-500 bg-green-500' : 'border-border'
+                )}>
+                  {step.done && <CheckCircle className="h-3 w-3 text-white" />}
+                </div>
+                <span className={cn('text-xs', step.done ? 'line-through text-muted-foreground' : 'text-foreground')}>{step.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_360px]">
+        <div className="space-y-3">
+          <Card className="dashboard-panel border border-gray-200">
             <CardHeader className="border-b border-border/60 pb-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-black">
                     <div className="icon-container-sm">
                       <BarChart3 className="h-3.5 w-3.5" />
                     </div>
@@ -319,10 +456,10 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="dashboard-panel">
-              <CardHeader className="border-b border-border/60 pb-4">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <Card className="dashboard-panel border border-gray-200 h-fit">
+              <CardHeader className="border-b border-border/60 pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-black">
                   <div className="icon-container-sm">
                     <CheckCircle className="h-3.5 w-3.5" />
                   </div>
@@ -332,14 +469,14 @@ export function Dashboard() {
                   Planning coverage based on published and scheduled posts.
                 </p>
               </CardHeader>
-              <CardContent className="space-y-5 pt-6">
+              <CardContent className="space-y-3 pt-4">
                 {isLoading ? (
                   <div className="flex items-center justify-center">
-                    <Skeleton className="h-48 w-48 rounded-full" />
+                    <Skeleton className="h-40 w-40 rounded-full" />
                   </div>
                 ) : (
                   <div className="flex items-center justify-center">
-                    <div className="relative flex h-48 w-48 items-center justify-center">
+                    <div className="relative flex h-40 w-40 items-center justify-center">
                       <div
                         className="absolute inset-0 rounded-full"
                         style={{
@@ -357,7 +494,7 @@ export function Dashboard() {
                 {!isLoading && (
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: 'Published', value: publishedCount, color: 'text-emerald-600 dark:text-emerald-400' },
+                      { label: 'Published', value: publishedCount, color: 'text-green-600 dark:text-green-400' },
                       { label: 'Scheduled', value: scheduledCount, color: 'text-blue-600 dark:text-blue-400' },
                       { label: 'Drafts', value: draftCount, color: 'text-amber-600 dark:text-amber-400' },
                     ].map((item) => (
@@ -371,10 +508,10 @@ export function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="dashboard-panel">
-              <CardHeader className="border-b border-border/60 pb-4">
+            <Card className="dashboard-panel border border-gray-200 h-fit flex flex-col">
+              <CardHeader className="border-b border-border/60 pb-3">
                 <div className="flex items-center justify-between gap-4">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-black">
                     <div className="icon-container-sm">
                       <MessageSquare className="h-3.5 w-3.5" />
                     </div>
@@ -388,7 +525,7 @@ export function Dashboard() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-y-auto max-h-[400px]">
                 {isLoading ? (
                   <div className="space-y-3">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -468,11 +605,44 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <Card className="dashboard-panel">
-            <CardHeader className="border-b border-border/60 pb-4">
+        <div className="space-y-3">
+          {showDailyPrompt && (
+            <Card className="dashboard-panel border border-amber-200/70 bg-gradient-to-br from-amber-50/80 to-white h-fit">
+              <CardContent className="pt-4 pb-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+                      <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">Today's action</p>
+                  </div>
+                  <button
+                    onClick={dismissDailyPrompt}
+                    className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  >
+                    dismiss
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  You have <span className="font-semibold text-foreground">{ideas.length} idea{ideas.length !== 1 ? 's' : ''}</span> captured.
+                  Your next queue slot is <span className="font-semibold text-foreground">{slotLabel}</span>.
+                </p>
+                <Button
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={() => navigate('/dashboard/ai-interview')}
+                >
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  Turn an idea into a post
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="dashboard-panel border border-gray-200 h-fit">
+            <CardHeader className="border-b border-border/60 pb-3">
               <div className="flex items-center justify-between gap-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-black">
                   <div className="icon-container-sm">
                     <FileText className="h-3.5 w-3.5" />
                   </div>
@@ -481,7 +651,7 @@ export function Dashboard() {
                 <span className="section-label">Queue</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3 pt-4">
+            <CardContent className="space-y-3 pt-3">
               {isLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 2 }).map((_, i) => (
@@ -529,22 +699,68 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className={cn('dashboard-panel relative overflow-hidden', isLinkedInConnected && 'border-emerald-200/70 dark:border-emerald-800/50')}>
+          <Card className="dashboard-panel border border-gray-200 h-fit">
+            <CardHeader className="border-b border-border/60 pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-black">
+                  <div className="icon-container-sm">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                  </div>
+                  This week's ideas
+                </CardTitle>
+                <span className="section-label">{weeklyIdeas.length} captured</span>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-3">
+              {weeklyIdeas.length === 0 ? (
+                <div className="py-6 text-center space-y-3">
+                  <p className="text-sm text-muted-foreground">No ideas captured this week</p>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/dashboard/ideas')}>
+                    Capture idea
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {weeklyIdeas.slice(0, 3).map((idea) => {
+                    const tagColors: Record<string, string> = {
+                      win: 'bg-green-100 text-green-700',
+                      lesson: 'bg-blue-100 text-blue-700',
+                      opinion: 'bg-purple-100 text-purple-700',
+                      thought: 'bg-gray-100 text-gray-700',
+                      update: 'bg-sky-100 text-sky-700',
+                      question: 'bg-orange-100 text-orange-700',
+                    };
+                    const tagClass = tagColors[idea.tag] ?? 'bg-amber-100 text-amber-700';
+                    return (
+                      <div key={idea.id} className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2">
+                        <p className="flex-1 min-w-0 line-clamp-1 text-xs text-foreground">{idea.text}</p>
+                        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize', tagClass)}>
+                          {idea.tag}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className={cn('dashboard-panel relative overflow-hidden border border-gray-200 h-fit', isLinkedInConnected && 'border-emerald-200/70 dark:border-emerald-800/50')}>
             {isLinkedInConnected && (
               <BorderBeam size={120} duration={20} colorFrom="#10b981" colorTo="#34d399" borderWidth={1.5} />
             )}
-            <CardHeader className="border-b border-border/60 pb-4">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <CardHeader className="border-b border-border/60 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-black">
                 <div className="icon-container-sm">
                   <Users className="h-3.5 w-3.5" />
                 </div>
                 LinkedIn
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 pt-4">
+            <CardContent className="space-y-3 pt-3">
               <div className="flex items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2.5">
-                <span className={cn('h-2 w-2 rounded-full shrink-0', isLinkedInConnected ? 'bg-emerald-500 pulse-dot' : 'bg-muted-foreground/40')} />
-                <span className={cn('text-xs font-medium', isLinkedInConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
+                <span className={cn('h-2 w-2 rounded-full shrink-0', isLinkedInConnected ? 'bg-green-500 pulse-dot' : 'bg-muted-foreground/40')} />
+                <span className={cn('text-xs font-medium', isLinkedInConnected ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground')}>
                   {isLinkedInConnected ? 'Connected' : 'Not connected'}
                 </span>
               </div>
@@ -561,10 +777,10 @@ export function Dashboard() {
               ) : (
                 <div className="space-y-2">
                   {[
-                    { icon: CheckCircle, label: 'Published', value: publishedCount, color: 'text-emerald-600 dark:text-emerald-400' },
+                    { icon: CheckCircle, label: 'Published', value: publishedCount, color: 'text-green-600 dark:text-green-400' },
                     { icon: CalendarDays, label: 'Scheduled', value: scheduledCount, color: 'text-blue-600 dark:text-blue-400' },
                     { icon: Clock, label: 'Drafts', value: draftCount, color: 'text-amber-600 dark:text-amber-400' },
-                    { icon: XCircle, label: 'Failed', value: failedCount, color: 'text-rose-600 dark:text-rose-400' },
+                    { icon: XCircle, label: 'Failed', value: failedCount, color: 'text-red-600 dark:text-red-400' },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between py-1">
                       <div className="flex items-center gap-2">

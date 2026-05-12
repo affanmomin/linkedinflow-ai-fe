@@ -35,7 +35,7 @@ export default function Signup() {
       const result = await authAPI.register(data.email, data.password, data.name);
       setUser(result.user);
       toast.success('Account created!');
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || 'Signup failed. Please try again.');
     } finally {

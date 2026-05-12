@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { linkedInAPI } from '@/lib/api';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
@@ -117,6 +117,13 @@ export function useLinkedInOAuth(options: UseLinkedInOAuthOptions = {}) {
 
   const isConnected = Boolean(linkedInStatus?.isConnected && !linkedInStatus?.isExpired);
 
+  const daysUntilExpiry = useMemo(() => {
+    const expiresAt = linkedInStatus?.data?.expiresAt;
+    if (!expiresAt) return null;
+    const diff = new Date(expiresAt).getTime() - Date.now();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }, [linkedInStatus]);
+
   return {
     linkedInStatus,
     isLoading,
@@ -124,6 +131,7 @@ export function useLinkedInOAuth(options: UseLinkedInOAuthOptions = {}) {
     isExpired: linkedInStatus?.isExpired ?? false,
     vanityName: linkedInStatus?.data?.vanityName,
     connectedAt: linkedInStatus?.data?.connectedAt,
+    daysUntilExpiry,
     connect,
     disconnect,
     fetchStatus,

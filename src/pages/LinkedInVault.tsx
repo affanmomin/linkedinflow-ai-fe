@@ -10,13 +10,13 @@ import {
   HelpCircle,
   Database,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useLinkedInOAuth } from '../hooks/useLinkedInOAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export function LinkedInVault() {
   const [isTesting, setIsTesting] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const {
     linkedInStatus,
@@ -25,6 +25,7 @@ export function LinkedInVault() {
     isExpired,
     vanityName,
     connectedAt,
+    daysUntilExpiry,
     connect,
     disconnect,
     fetchStatus,
@@ -53,9 +54,9 @@ export function LinkedInVault() {
   const showRevoked = linkedInStatus !== null && !isConnected && isExpired;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="rounded-2xl border border-[#e0dfdc] bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-3 animate-fade-in">
+      <div className="rounded-2xl border border-[#e0dfdc] bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2">
               <div className="rounded-xl bg-[#eef3f8] p-2 text-[#0a66c2] border border-[#dce6f1]">
                 <Database className="h-4 w-4" />
@@ -70,7 +71,7 @@ export function LinkedInVault() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => toast.info('Help is not yet implemented.')}
+              onClick={() => setShowHelp(h => !h)}
               className="!border-[#e0dfdc] !bg-[#f3f2ee] !text-[#191919] hover:!bg-[#eef3f8]"
             >
               <HelpCircle className="mr-1 h-3 w-3" />
@@ -79,12 +80,25 @@ export function LinkedInVault() {
           </div>
       </div>
 
-      <main className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      {showHelp && (
+        <div className="rounded-xl border border-[#dce6f1] bg-[#f8fafc] p-5 text-sm text-[#595959] space-y-3">
+          <h3 className="font-semibold text-[#191919] text-base">LinkedIn Connection Guide</h3>
+          <div className="space-y-2 text-xs leading-relaxed">
+            <p><strong className="text-[#191919]">1. Connect:</strong> Click "Connect with LinkedIn" — you'll be redirected to LinkedIn to authorize the app.</p>
+            <p><strong className="text-[#191919]">2. Authorize:</strong> LinkedIn will ask you to grant permission to post on your behalf (w_member_social scope).</p>
+            <p><strong className="text-[#191919]">3. Token expiry:</strong> Tokens are valid for ~60 days. You'll see a warning 7 days before expiry.</p>
+            <p><strong className="text-[#191919]">4. Reconnect:</strong> To reconnect, click Disconnect then Connect again. This generates a fresh token.</p>
+            <p><strong className="text-[#191919]">5. Security:</strong> Your LinkedIn password is never stored. Only an access token (which you can revoke anytime from LinkedIn Settings → Permitted Services).</p>
+          </div>
+        </div>
+      )}
+
+      <main className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div className="space-y-3 lg:col-span-2">
           <Card className="mt-1 overflow-hidden border-[#e0dfdc] bg-white text-[#191919] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-            <CardContent className="p-5">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div className="flex items-center gap-3 mb-4">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div className="flex items-center gap-3 mb-6">
                   <div className="rounded-lg bg-[#eef3f8] p-2 text-[#0a66c2] border border-[#dce6f1]">
                     <Shield className="h-4 w-4" />
                   </div>
@@ -112,8 +126,8 @@ export function LinkedInVault() {
           </Card>
 
           <Card className="overflow-hidden border-[#e0dfdc] bg-white text-[#191919] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-            <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-4">
+            <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
                     <div className="rounded-lg bg-[#eef3f8] p-2 text-[#0a66c2] border border-[#dce6f1]">
                       <LinkIcon className="h-4 w-4" />
                     </div>
@@ -142,7 +156,7 @@ export function LinkedInVault() {
 
         <div className="lg:col-span-1">
           <Card className="sticky top-6 overflow-hidden border-[#e0dfdc] bg-white text-[#191919] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-            <CardContent className="space-y-6 p-5">
+            <CardContent className="space-y-3 p-6">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <div
@@ -159,7 +173,7 @@ export function LinkedInVault() {
                   </div>
 
                   {!showConnected ? (
-                    <div className="text-center space-y-4">
+                    <div className="text-center space-y-2">
                       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#dce6f1] bg-[#eef3f8]">
                         <Linkedin className="h-8 w-8 text-[#0a66c2]" />
                       </div>
@@ -187,7 +201,7 @@ export function LinkedInVault() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-3 rounded-lg border border-[#dce6f1] bg-[#eef3f8] p-4">
                         <CheckCircle className="h-5 w-5 flex-shrink-0 text-[#0a66c2]" />
                         <div>
@@ -202,6 +216,55 @@ export function LinkedInVault() {
                           )}
                         </div>
                       </div>
+                      {(() => {
+                        const expiresAt = linkedInStatus?.data?.expiresAt;
+                        const expDate = expiresAt ? new Date(expiresAt) : null;
+                        const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+                        const isExpiredNow = daysUntilExpiry !== null && daysUntilExpiry <= 0;
+
+                        return (
+                          <div className={`rounded-lg border p-3 text-xs space-y-2 ${
+                            isExpiredNow   ? 'border-red-200 bg-red-50'
+                            : isExpiringSoon ? 'border-amber-200 bg-amber-50'
+                            : 'border-[#dce6f1] bg-[#eef3f8]'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-[#191919]">Token Health</span>
+                              <span className={`font-bold ${
+                                isExpiredNow   ? 'text-red-600'
+                                : isExpiringSoon ? 'text-amber-600'
+                                : 'text-[#0a66c2]'
+                              }`}>
+                                {isExpiredNow
+                                  ? 'Expired'
+                                  : daysUntilExpiry !== null
+                                  ? `${daysUntilExpiry}d remaining`
+                                  : 'Active'}
+                              </span>
+                            </div>
+                            {expDate && (
+                              <p className="text-[#595959]">
+                                Expires: {expDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-1 pt-0.5">
+                              <span className="inline-flex items-center rounded-full bg-[#0a66c2]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0a66c2] border border-[#0a66c2]/20">
+                                w_member_social
+                              </span>
+                              <span className="inline-flex items-center rounded-full bg-[#0a66c2]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0a66c2] border border-[#0a66c2]/20">
+                                Share on LinkedIn
+                              </span>
+                            </div>
+                            {(isExpiredNow || isExpiringSoon) && (
+                              <p className={`text-[11px] font-medium ${isExpiredNow ? 'text-red-700' : 'text-amber-700'}`}>
+                                {isExpiredNow
+                                  ? 'Reconnect LinkedIn to resume automation.'
+                                  : `Token expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''} — reconnect to avoid interruption.`}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <div className="space-y-2 pt-2">
                         <Button
                           variant="outline"

@@ -1,10 +1,11 @@
-import { Bell, CalendarDays, Menu, Search, Sparkles, Check, XCircle, Info, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, CalendarDays, Menu, Sparkles, Check, XCircle, Info, Trash2, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useLinkedInOAuth } from '@/hooks/useLinkedInOAuth';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -16,36 +17,86 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const routeTitles: Record<string, string> = {
-  '/':                  'Dashboard',
-  '/posts':            'Posts',
-  '/content-calendar': 'Planner',
-  '/create-post':      'Create Post',
-  '/analytics':        'Analytics',
-  '/linkedin-vault':   'LinkedIn Vault',
-  '/automation':       'Automation',
-  '/settings':         'Settings',
-};
+interface PageMetadata {
+  title: string;
+  description: string;
+  sectionLabel: string;
+}
 
-const topTabs = [
-  { label: 'Overview', href: '/' },
-  { label: 'Posts', href: '/posts' },
-  { label: 'Planner', href: '/content-calendar' },
-  { label: 'Analytics', href: '/analytics' },
-  { label: 'Automation', href: '/automation' },
-];
+const routeMetadata: Record<string, PageMetadata> = {
+  '/dashboard': {
+    sectionLabel: 'Overview',
+    title: 'Monitor every post, schedule, and signal in one place',
+    description: 'A bird\'s-eye workspace for drafts, scheduling, publishing, and LinkedIn health.',
+  },
+  '/dashboard/posts': {
+    sectionLabel: 'Content',
+    title: 'Manage all your posts',
+    description: 'View, edit, and organize your LinkedIn content across all statuses.',
+  },
+  '/dashboard/content-calendar': {
+    sectionLabel: 'Planning',
+    title: 'Content calendar',
+    description: 'Plan and schedule your posts with an intuitive calendar view.',
+  },
+  '/dashboard/create-post': {
+    sectionLabel: 'Creation',
+    title: 'Create a new post',
+    description: 'Compose your post, choose when to publish, and share with your audience.',
+  },
+  '/dashboard/analytics': {
+    sectionLabel: 'Insights',
+    title: 'Post analytics',
+    description: 'Track performance, engagement, and reach across all your content.',
+  },
+  '/dashboard/linkedin-vault': {
+    sectionLabel: 'Integrations',
+    title: 'LinkedIn Vault',
+    description: 'Manage your LinkedIn account connections and integrations.',
+  },
+  '/dashboard/automation': {
+    sectionLabel: 'Automation',
+    title: 'Automation Hub',
+    description: 'Set up rules and workflows to automate your posting.',
+  },
+  '/dashboard/settings': {
+    sectionLabel: 'Configuration',
+    title: 'Settings',
+    description: 'Manage your account preferences and application settings.',
+  },
+  '/dashboard/ideas': {
+    sectionLabel: 'Capture',
+    title: 'Your idea inbox',
+    description: 'Raw thoughts, wins, and lessons captured before they become posts.',
+  },
+  '/dashboard/ai-interview': {
+    sectionLabel: 'Creation',
+    title: 'AI Post Interview',
+    description: 'Answer 5 questions. Get 3 LinkedIn post drafts written in your voice.',
+  },
+  '/dashboard/weekly': {
+    sectionLabel: 'Planning',
+    title: 'Weekly workflow',
+    description: 'Turn this week\'s ideas into a full posting schedule in 30 minutes.',
+  },
+};
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
+  const { daysUntilExpiry } = useLinkedInOAuth();
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return sessionStorage.getItem(`linkedin_expiry_dismissed_${today}`) === '1';
+  });
   const { user } = useAuthStore();
   const { linkedInStatus, notifications, markAllNotificationsRead, clearNotifications } = useLinkedInStore();
   const location = useLocation();
   const navigate = useNavigate();
   const connected = Boolean(linkedInStatus?.isConnected && !linkedInStatus?.isExpired);
-  const pageTitle = routeTitles[location.pathname] ?? '';
+  const pageMetadata = routeMetadata[location.pathname] || routeMetadata['/dashboard'];
   const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   const notificationIcon = (type: 'success' | 'error' | 'info') => {
@@ -55,32 +106,77 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-[#dce6f1] bg-[#f8f9fb]/95 px-4 py-4 backdrop-blur-lg lg:px-8">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-10 w-10 rounded-xl p-0 lg:hidden"
-          onClick={onMenuClick}
-          aria-label="Open navigation menu"
-        >
-          <Menu className="h-4 w-4" />
-        </Button>
-
-        <div className="min-w-[180px]">
-          <span className="block text-[32px] font-semibold tracking-tight text-foreground leading-none">{pageTitle}</span>
-        </div>
-
-        <div className="hidden md:flex flex-1 justify-center px-2 lg:px-6">
-          <div className="relative w-full max-w-[520px]">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              aria-label="Search"
-              placeholder="Search"
-              className="h-11 rounded-full border border-border bg-card pl-10 pr-4 text-sm shadow-[var(--shadow-xs)]"
-            />
+    <header className="sticky top-0 z-30 shrink-0 border-b border-gray-400 bg-[#eef3f8] backdrop-blur-lg transition-all duration-200 ease-in-out">
+      {daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry <= 7 && !bannerDismissed && (
+        <div className="flex items-center justify-between gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              LinkedIn token expires in <strong>{daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}</strong>.{' '}
+              <button
+                className="underline font-medium hover:no-underline"
+                onClick={() => navigate('/dashboard/linkedin-vault')}
+              >
+                Reconnect now
+              </button>
+            </span>
           </div>
+          <button
+            onClick={() => {
+              const today = new Date().toISOString().slice(0, 10);
+              sessionStorage.setItem(`linkedin_expiry_dismissed_${today}`, '1');
+              setBannerDismissed(true);
+            }}
+            className="shrink-0 rounded p-0.5 hover:bg-amber-200/50"
+            aria-label="Dismiss"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
+      )}
+      {daysUntilExpiry !== null && daysUntilExpiry <= 0 && (
+        <div className="flex items-center gap-2 bg-red-50 border-b border-red-200 px-4 py-2 text-xs text-red-800 dark:bg-red-950/30 dark:border-red-800 dark:text-red-200">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-600" />
+          <span>
+            LinkedIn token has expired. Scheduled posts are paused.{' '}
+            <button
+              className="underline font-medium hover:no-underline"
+              onClick={() => navigate('/dashboard/linkedin-vault')}
+            >
+              Reconnect LinkedIn
+            </button>
+          </span>
+        </div>
+      )}
+      <div className="relative px-4 py-3 lg:py-4 lg:px-8">
+        {/* Background accent - matching Landing page style */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a66c2]/8 via-[#0a66c2]/3 to-transparent pointer-events-none" />
+
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-10 w-10 rounded-xl p-0 lg:hidden"
+              onClick={onMenuClick}
+              aria-label="Open navigation menu"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="h-0.5 w-0.5 rounded-full bg-[#0a66c2]" />
+                <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#0a66c2]">{pageMetadata.sectionLabel}</p>
+              </div>
+              <h1 className="text-base md:text-xl font-bold tracking-tight text-[#191919] leading-tight mb-0.5 sm:mb-1 line-clamp-1">
+                {pageMetadata.title}
+              </h1>
+              <p className="hidden sm:block text-xs text-[#595959] leading-relaxed">
+                {pageMetadata.description}
+              </p>
+            </div>
+          </div>
 
         <div className="ml-auto flex items-center gap-2">
           <DropdownMenu>
@@ -104,7 +200,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <DropdownMenuLabel className="p-0 text-sm font-semibold">Notifications</DropdownMenuLabel>
                 {notifications.length > 0 && (
                   <button
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                    className="text-xs text-[#191919] hover:opacity-75"
                     onClick={markAllNotificationsRead}
                   >
                     Mark all read
@@ -161,7 +257,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <DropdownMenuSeparator />
                   <div className="flex items-center justify-between px-3 py-2">
                     <button
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      className="flex items-center gap-1.5 text-xs text-[#191919] hover:opacity-75"
                       onClick={clearNotifications}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -211,23 +307,6 @@ export function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
       </div>
-
-      <div className="mt-4 hidden lg:flex items-center gap-6 border-t border-border pt-3">
-        {topTabs.map((tab) => {
-          const isActive = location.pathname === tab.href;
-          return (
-            <Link
-              key={tab.href}
-              to={tab.href}
-              className={cn(
-                'relative pb-2 text-[15px] font-medium text-muted-foreground transition-colors hover:text-foreground',
-                isActive && 'text-foreground after:absolute after:left-0 after:right-0 after:-bottom-[2px] after:h-[2px] after:rounded-full after:bg-primary',
-              )}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
       </div>
     </header>
   );

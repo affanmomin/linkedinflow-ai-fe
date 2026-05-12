@@ -71,15 +71,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Log the full backend error body in development so we can diagnose issues
 api.interceptors.response.use(
   (res) => res,
   (error) => {
     const url = error.config?.url;
     const status = error.response?.status;
     const body = error.response?.data;
+
     // Suppress expected 401 on /api/me (unauthenticated user on mount)
     if (url === '/api/me' && status === 401) return Promise.reject(error);
+
+    // Network error — backend not reachable (no response at all)
+    if (!error.response) {
+      console.warn(`[API] Backend unreachable — is the server running at ${API_BASE_URL}?`);
+      return Promise.reject(error);
+    }
+
     console.error(`[API ${status}] ${error.config?.method?.toUpperCase()} ${url}`, body);
     return Promise.reject(error);
   }
@@ -110,6 +117,11 @@ export const authAPI = {
     const response = await api.get('/api/me');
     persistAuthTokenFromPayload(response.data);
     return response.data; // { user: { id, name, email, emailVerified, image }, session }
+  },
+
+  updateProfile: async (data: { name?: string; timezone?: string; notification_preferences?: Record<string, unknown> }) => {
+    const response = await api.patch('/api/me', data);
+    return response.data as { success: boolean; user: { id: string; email: string; name: string; timezone?: string } };
   },
 };
 
@@ -154,6 +166,19 @@ export const linkedInAPI = {
 };
 
 // ── Posts ─────────────────────────────────────────────────────────────────────
+
+export interface PostPublishLog {
+  id: string;
+  post_id: string;
+  attempt_number: number;
+  status: 'success' | 'failed' | 'timeout';
+  http_status?: number;
+  linkedin_urn?: string;
+  error_code?: string;
+  error_message?: string;
+  duration_ms?: number;
+  created_at: string;
+}
 
 export interface Post {
   id: string;
@@ -347,6 +372,99 @@ export const postsAPI = {
       message?: string;
       error?: string;
     };
+  },
+
+  /**
+   * POST /api/posts/analyze
+   * Analyze post content for performance prediction and optimal timing
+   */
+  analyzePost: async (data: {
+    content: string;
+    post_type?: 'text' | 'image' | 'video' | 'link';
+  }) => {
+    const response = await api.post('/api/posts/analyze', data);
+    return response.data as {
+      performanceScore: {
+        score: number;
+        predictedLikes: number;
+        predictedComments: number;
+        breakdown: Record<string, number>;
+      };
+      optimalTime: {
+        recommendedHour: number;
+        recommendedDay: string;
+        engagementLiftPercent: number;
+        engagementPrediction: {
+          ifPostedNow: number;
+          ifPostedOptimal: number;
+          potentialGain: number;
+        };
+      };
+      suggestions: Array<{
+        type: string;
+        current?: string | number;
+        suggested?: string | number;
+        impact: string;
+        reason: string;
+      }>;
+      abtestOptions: Array<{
+        title: string;
+        content: string;
+        predictedScore: number;
+      }>;
+    };
+  },
+
+  getLogs: async (postId: string) => {
+    const response = await api.get(`/posts/${postId}/logs`);
+    return response.data as { success: boolean; logs: PostPublishLog[] };
+  },
+
+  retryPost: async (id: string) => {
+    const response = await api.post(`/posts/${id}/retry`);
+    return response.data as { success: boolean; post: Post };
+  },
+
+  /**
+   * POST /api/posts/generate
+   * AI interview → 3 post variations
+   */
+  generateFromInterview: async (data: {
+    answers: { q1: string; q2: string; q3: string; q4: string; q5: string };
+    style?: 'story' | 'opinion' | 'insight';
+    brand_voice?: { tone?: string; style?: string; examples?: string };
+  }) => {
+    const response = await api.post('/api/posts/generate', data, { timeout: 30_000 });
+    return response.data as {
+      variations: Array<{ type: string; content: string; hook: string }>;
+    };
+  },
+
+  duplicatePost: async (id: string) => {
+    const response = await api.post(`/posts/${id}/duplicate`);
+    return response.data as { success: boolean; post: Post };
+  },
+};
+
+// ── Automation ────────────────────────────────────────────────────────────────
+
+export interface AutomationSettings {
+  autoRetry: boolean;
+  retryAttempts: number;
+  delayBetweenPosts: number;
+  enableScheduling: boolean;
+  maxDailyPosts: number;
+}
+
+export const automationAPI = {
+  getSettings: async () => {
+    const response = await api.get('/api/automation/settings');
+    return response.data as { settings: AutomationSettings };
+  },
+
+  updateSettings: async (settings: AutomationSettings) => {
+    const response = await api.post('/api/automation/settings', settings);
+    return response.data as { success: boolean; settings: AutomationSettings };
   },
 };
 

@@ -105,14 +105,23 @@ export function LinkedInPreview({
       {/* Image attachment */}
       {postType === 'image' && imagePreviewUrl && (
         <div className="mt-1 aspect-video bg-[#f3f2ef] overflow-hidden">
-          <img src={imagePreviewUrl} alt="Post image" className="w-full h-full object-cover" />
+          <img src={imagePreviewUrl} alt="Post image" className="w-full h-full object-cover" onError={(e) => {
+            (e.target as HTMLImageElement).style.display = 'none';
+            const parent = (e.target as HTMLImageElement).parentElement;
+            if (parent) {
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'w-full h-full flex items-center justify-center bg-[#f3f2ef] text-[#00000066] text-sm';
+              errorDiv.textContent = 'Image failed to load';
+              parent.appendChild(errorDiv);
+            }
+          }} />
         </div>
       )}
 
       {/* Image placeholder when no URL yet */}
       {postType === 'image' && !imagePreviewUrl && (
         <div className="mt-1 aspect-video bg-[#f3f2ef] flex items-center justify-center text-[#00000066] text-sm">
-          Image attachment
+          📷 Image attachment (URL not found)
         </div>
       )}
 
@@ -125,13 +134,22 @@ export function LinkedInPreview({
               controls
               className="w-full h-full object-contain"
               preload="metadata"
+              onError={() => {
+                const parent = (event?.target as HTMLVideoElement)?.parentElement;
+                if (parent) {
+                  const errorDiv = document.createElement('div');
+                  errorDiv.className = 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/60 bg-[#1b1b1b]';
+                  errorDiv.innerHTML = '<span class="text-xs">Video failed to load</span>';
+                  parent.appendChild(errorDiv);
+                }
+              }}
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/60">
               <div className="h-12 w-12 rounded-full border-2 border-white/30 flex items-center justify-center">
                 <Play className="h-5 w-5 fill-white/60 text-white/60 ml-0.5" />
               </div>
-              <span className="text-xs">Video attachment</span>
+              <span className="text-xs">🎬 Video attachment (URL not found)</span>
             </div>
           )}
         </div>

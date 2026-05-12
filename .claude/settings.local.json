@@ -13,7 +13,31 @@
       "Bash(xargs -I {} basename {})",
       "Bash(pnpm exec:*)",
       "Bash(git checkout *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(grep -i \"\\\\.\\(tsx\\\\|ts\\)$\")",
+      "Bash(pnpm dev *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(cat)",
+      "Read(//c/Users/Lenovo/Downloads/LinkedIn-Automation-Dashboard/**)",
+      "Bash(pnpm remove *)",
+      "PowerShell(Get-Process *)",
+      "mcp__ide__getDiagnostics",
+      "Bash(awk '{print $9, \"\\(\" $5 \"\\)\"}')",
+      "Bash(curl -s -X POST http://localhost:4000/api/posts/analyze -H 'Content-Type: application/json' -H 'Authorization: Bearer test-token' -d '{ *)",
+      "Bash(curl -s -X POST http://localhost:4000/posts/analyze -H 'Content-Type: application/json' -H 'Authorization: Bearer test-token' -d '{ *)",
+      "Bash(netstat -tuln)",
+      "Read(//tmp/**)",
+      "Bash(Get-ChildItem *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\Linkedinflow-fe\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Dir\"}else{\"File\"}}} | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\Linkedinflow-fe\\\\public\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Dir\"}else{\"File\"}}} | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Lenovo\\\\Desktop\\\\Linkedinflow-fe\\\\samples\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Dir\"}else{\"File\"}}} | Format-Table -AutoSize)",
+      "Bash(npx --yes md-to-pdf \"docs/linkedinflow-planning/14-progress-report.md\" --dest \"docs/linkedinflow-planning/14-progress-report.pdf\")",
+      "Bash(npx md-to-pdf *)",
+      "Bash(node -e \"require\\('date-fns'\\)\")",
+      "Bash(timeout 8 type \"C:\\\\Users\\\\Lenovo\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Lenovo-Desktop-Linkedinflow-fe\\\\18082987-7ec3-477c-bea8-703133104afc\\\\tasks\\\\bw3zsvdyh.output\")",
+      "Bash(node -e \"const r = require\\('lucide-react'\\); const icons = ['ListOrdered','CalendarCheck','CalendarClock','CalendarPlus']; icons.forEach\\(i => console.log\\(i, !!r[i]\\)\\)\")",
+      "Bash(node -e \"require\\('date-fns'\\); console.log\\('date-fns OK'\\)\")",
+      "Bash(node -e \"const df = require\\('date-fns'\\); console.log\\('isToday:', typeof df.isToday, 'isTomorrow:', typeof df.isTomorrow\\);\")"
     ]
   }
 }

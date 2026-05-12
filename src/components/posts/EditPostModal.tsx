@@ -101,7 +101,7 @@ function PostTypeBadge({ type }: { type: Post['post_type'] }) {
     text: { icon: FileText, label: 'Text', cls: 'bg-muted text-muted-foreground border-border' },
     link: { icon: LinkIcon, label: 'Link', cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800' },
     image: { icon: ImageIcon, label: 'Image', cls: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-800' },
-    video: { icon: Play, label: 'Video', cls: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800' },
+    video: { icon: Play, label: 'Video', cls: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
   } as const;
   const { icon: Icon, label, cls } = map[type] ?? map.text;
   return (
