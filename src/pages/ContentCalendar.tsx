@@ -43,7 +43,6 @@ import {
   XCircle,
   FileText,
   ChevronDown,
-  ChevronUp,
   Send,
   GripVertical,
 } from 'lucide-react';
@@ -55,7 +54,6 @@ import { postsAPI, type Post } from '@/lib/api';
 import { designSystem } from '@/lib/design-system';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { NumberTicker } from '@/components/ui/magic/number-ticker';
 import { LinkedInPreview } from '@/components/posts/LinkedInPreview';
 import { EditPostModal } from '@/components/posts/EditPostModal';
 import { PageTransition } from '@/components/ui/magic/page-transition';
@@ -556,13 +554,11 @@ const DRAFT_PAGE_SIZE = 6;
 
 function DraggableDraftCard({
   post,
-  index,
   onEdit,
   onSchedule,
   onPreview,
 }: {
   post: Post;
-  index: number;
   onEdit: (post: Post) => void;
   onSchedule: (post: Post) => void;
   onPreview: (post: Post) => void;
@@ -679,11 +675,10 @@ function DraftQueue({
           >
             <div className="border-t border-amber-200/70 p-4 sm:p-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {visible.map((post, i) => (
+                {visible.map((post) => (
                   <DraggableDraftCard
                     key={post.id}
                     post={post}
-                    index={i}
                     onEdit={onEdit}
                     onSchedule={onSchedule}
                     onPreview={onPreview}

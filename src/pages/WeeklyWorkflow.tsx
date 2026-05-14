@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
-import { useAuthStore } from '@/store/useAuthStore';
 import { ideasAPI } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +60,6 @@ const WEEKLY_GOAL = 3;
 export function WeeklyWorkflow() {
   const navigate = useNavigate();
   const { posts } = useLinkedInStore();
-  const { user } = useAuthStore();
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [activeTag, setActiveTag] = useState<string>('all');

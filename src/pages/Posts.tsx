@@ -405,7 +405,6 @@ export function Posts() {
   const scheduledCount  = posts.filter(p => p.status === 'scheduled').length;
   const publishedCount  = posts.filter(p => p.status === 'published').length;
   const failedCount     = posts.filter(p => p.status === 'failed').length;
-  const publishingCount = posts.filter(p => (p.status as string) === 'publishing').length;
 
   const fetchPosts = (silent = false) => {
     if (!silent) setIsFetching(true);

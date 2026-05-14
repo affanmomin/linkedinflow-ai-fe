@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuthStore } from '@/store/useAuthStore';
 import { ideasAPI, brandVoiceAPI } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,11 +89,10 @@ HARD RULES:
 
 export function AIInterview() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
   const ideaId = searchParams.get('idea');
 
-  const [answers, setAnswers] = useState({ q1: '', q2: '', q5: '' });
+  const [answers, setAnswers] = useState({ q1: '', q2: '', q3: '', q4: '', q5: '' });
   const [style, setStyle] = useState<StyleOption>('story');
   const [isGenerating, setIsGenerating] = useState(false);
   const [variations, setVariations] = useState<Array<{ type: string; content: string; hook: string }> | null>(null);

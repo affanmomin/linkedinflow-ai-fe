@@ -10,8 +10,6 @@ import {
   MessageSquare,
   Calendar,
   CheckCircle,
-  XCircle,
-  Clock,
   ArrowUpRight,
   BarChart3,
   Plus,
@@ -24,7 +22,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
-import { useAuthStore } from '@/store/useAuthStore';
 import { ideasAPI } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { NumberTicker } from '@/components/ui/magic/number-ticker';
@@ -114,7 +111,6 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export function Dashboard() {
   const { posts, linkedInStatus, setPosts } = useLinkedInStore();
-  const { user } = useAuthStore();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

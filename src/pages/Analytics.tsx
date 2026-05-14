@@ -32,7 +32,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
   LabelList,
 } from 'recharts';
 import { useLinkedInStore } from '@/store/useLinkedInStore';
