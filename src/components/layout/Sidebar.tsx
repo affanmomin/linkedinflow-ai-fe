@@ -127,14 +127,14 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }: Side
         {/* Navigation */}
         <nav className={cn(
           'flex-1 overflow-hidden pb-3 flex flex-col',
-          isCollapsed ? 'px-2 pt-2 gap-3' : 'px-3 pt-8 gap-6',
+          isCollapsed ? 'px-2 pt-2 gap-2' : 'px-3 pt-8 gap-4',
         )}>
           {navSections.map((section, sectionIndex) => (
             <div key={section.label}>
               {sectionIndex > 0 && (
                 <div className={cn(isCollapsed ? '-mx-2 mb-2' : '-mx-3 mb-3')} />
               )}
-              <div className={cn(isCollapsed ? 'flex flex-col items-center gap-3' : 'space-y-3')}>
+              <div className={cn(isCollapsed ? 'flex flex-col items-center gap-3' : 'space-y-4')}>
                 {section.items.map((item) => {
                   const itemPath = item.href.split('?')[0];
                   const isActive = location.pathname === itemPath;

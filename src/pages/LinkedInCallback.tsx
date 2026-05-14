@@ -64,7 +64,7 @@ export default function LinkedInCallback() {
           sessionStorage.removeItem('linkedin_oauth_user_id');
           setStatus('success');
           toast.success(result.message || 'LinkedIn connected successfully!');
-          setTimeout(() => navigate('/linkedin-vault', { replace: true }), 1500);
+          setTimeout(() => navigate('/dashboard/linkedin-vault', { replace: true }), 1500);
         } else {
           // Backend returned 2xx but success:false
           const msg =
@@ -128,7 +128,7 @@ export default function LinkedInCallback() {
       </div>
       <div className="flex gap-2">
         <button
-          onClick={() => navigate('/linkedin-vault')}
+          onClick={() => navigate('/dashboard/linkedin-vault')}
           className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
         >
           Try again
